@@ -15,7 +15,7 @@ module if_stage(
     output [ 3:0] inst_sram_we  ,
     output [31:0] inst_sram_addr ,
     output [31:0] inst_sram_wdata,
-    input  [31:0] inst_sram_rdata                             //输入和读取是否有问题�?
+    input  [31:0] inst_sram_rdata                             //输入和读取是否有问题�??
 );
 
 reg         fs_valid;
@@ -53,7 +53,7 @@ always @(posedge clk) begin
     end
 
     if (reset) begin
-        fs_pc <= 32'hbfbffffc;  //trick: to make nextpc be 0xbfc00000 during reset 
+        fs_pc <= 32'h1bfffffc;  //trick: to make nextpc be 0xbfc00000 during reset 
     end
     else if (to_fs_valid && fs_allowin) begin
         fs_pc <= nextpc;
