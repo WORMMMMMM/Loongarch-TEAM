@@ -12,10 +12,10 @@ module if_stage(
     output [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus   ,
     // inst sram interface
     output        inst_sram_en   ,
-    output [ 3:0] inst_sram_wen  ,
+    output [ 3:0] inst_sram_we  ,
     output [31:0] inst_sram_addr ,
     output [31:0] inst_sram_wdata,
-    input  [31:0] inst_sram_rdata                             //输入和读取是否有问题？
+    input  [31:0] inst_sram_rdata                             //输入和读取是否有问题�?
 );
 
 reg         fs_valid;
@@ -61,7 +61,7 @@ always @(posedge clk) begin
 end
 
 assign inst_sram_en    = to_fs_valid && fs_allowin;
-assign inst_sram_wen   = 4'h0;
+assign inst_sram_we   = 4'h0;
 assign inst_sram_addr  = nextpc;
 assign inst_sram_wdata = 32'b0;
 

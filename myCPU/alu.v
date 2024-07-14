@@ -188,29 +188,29 @@ always @ (posedge clk) begin
   end
 end
 
-mydiv mydiv(
-  .s_axis_divisor_tdata(div_src2),
-  .s_axis_dividend_tdata(div_src1),
-  .s_axis_divisor_tvalid(div_src_valid),
-  .s_axis_dividend_tvalid(div_src_valid),
-  .s_axis_divisor_tready(div_divisor_ready),
-  .s_axis_dividend_tready(div_dividend_ready),
-  .aclk(clk),
-  .m_axis_dout_tdata(div_result),
-  .m_axis_dout_tvalid(div_ans_valid)
-);
+//mydiv mydiv(
+//  .s_axis_divisor_tdata(div_src2),
+//  .s_axis_dividend_tdata(div_src1),
+//  .s_axis_divisor_tvalid(div_src_valid),
+//  .s_axis_dividend_tvalid(div_src_valid),
+//  .s_axis_divisor_tready(div_divisor_ready),
+//  .s_axis_dividend_tready(div_dividend_ready),
+//  .aclk(clk),
+//  .m_axis_dout_tdata(div_result),
+//  .m_axis_dout_tvalid(div_ans_valid)
+//);
 
-my_unsigned_div my_unsigned_div(
-  .s_axis_divisor_tdata(div_src2),
-  .s_axis_dividend_tdata(div_src1),
-  .s_axis_divisor_tvalid(div_u_src_valid),
-  .s_axis_dividend_tvalid(div_u_src_valid),
-  .s_axis_divisor_tready(div_u_divisor_ready),
-  .s_axis_dividend_tready(div_u_dividend_ready),
-  .aclk(clk),
-  .m_axis_dout_tdata(div_u_result),
-  .m_axis_dout_tvalid(div_u_ans_valid)
-);
+//my_unsigned_div my_unsigned_div(
+//  .s_axis_divisor_tdata(div_src2),
+//  .s_axis_dividend_tdata(div_src1),
+//  .s_axis_divisor_tvalid(div_u_src_valid),
+//  .s_axis_dividend_tvalid(div_u_src_valid),
+//  .s_axis_divisor_tready(div_u_divisor_ready),
+//  .s_axis_dividend_tready(div_u_dividend_ready),
+//  .aclk(clk),
+//  .m_axis_dout_tdata(div_u_result),
+//  .m_axis_dout_tvalid(div_u_ans_valid)
+//);
 
 assign alu_result = ({32{op_add|op_sub}} & add_sub_result)
                   | ({32{op_slt       }} & slt_result)
