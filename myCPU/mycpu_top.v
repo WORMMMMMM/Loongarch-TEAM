@@ -6,21 +6,21 @@ module mycpu_top(
 
     // inst sram interface
     output        inst_sram_en,
-    output [ 3:0] inst_sram_wen,
+    output [ 3:0] inst_sram_we,
     output [31:0] inst_sram_addr,
     output [31:0] inst_sram_wdata,
     input  [31:0] inst_sram_rdata,
 
     // data sram interface
     output        data_sram_en,
-    output [ 3:0] data_sram_wen,
+    output [ 3:0] data_sram_we,
     output [31:0] data_sram_addr,
     output [31:0] data_sram_wdata,
     input  [31:0] data_sram_rdata,
     
     // trace debug interface
     output [31:0] debug_wb_pc,
-    output [ 3:0] debug_wb_rf_wen,
+    output [ 3:0] debug_wb_rf_we,
     output [ 4:0] debug_wb_rf_wnum,
     output [31:0] debug_wb_rf_wdata
 );
@@ -59,7 +59,7 @@ if_stage if_stage(
 
     // inst sram interface
     .inst_sram_en   (inst_sram_en   ),
-    .inst_sram_wen  (inst_sram_wen  ),
+    .inst_sram_we  (inst_sram_we  ),
     .inst_sram_addr (inst_sram_addr ),
     .inst_sram_wdata(inst_sram_wdata),
     .inst_sram_rdata(inst_sram_rdata)
@@ -82,7 +82,7 @@ id_stage id_stage(
     .ds_to_es_bus   (ds_to_es_bus   ),
 
     .br_bus         (br_bus         ),
-    .wb_bus         (wb_bus         ),
+    .wb_bus         (wb_bus         )
 );
 
 exe_stage exe_stage(
@@ -103,7 +103,7 @@ exe_stage exe_stage(
 
     // data sram interface
     .data_sram_en   (data_sram_en   ),
-    .data_sram_wen  (data_sram_wen  ),
+    .data_sram_we  (data_sram_we  ),
     .data_sram_addr (data_sram_addr ),
     .data_sram_wdata(data_sram_wdata)
 );
@@ -143,7 +143,7 @@ wb_stage wb_stage(
 
     // trace debug interface
     .debug_wb_pc      (debug_wb_pc      ),
-    .debug_wb_rf_wen  (debug_wb_rf_wen  ),
+    .debug_wb_rf_we  (debug_wb_rf_we  ),
     .debug_wb_rf_wnum (debug_wb_rf_wnum ),
     .debug_wb_rf_wdata(debug_wb_rf_wdata)
 );
