@@ -1,4 +1,4 @@
-`include "mycpu.h"
+`include "myCPU.h"
 
 module if_stage(
     input                          clk            ,
