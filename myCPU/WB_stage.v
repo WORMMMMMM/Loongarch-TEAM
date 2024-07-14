@@ -1,4 +1,4 @@
-`include "mycpu.h"
+`include "myCPU.h"
 
 module wb_stage(
     input                           clk           ,
@@ -6,10 +6,10 @@ module wb_stage(
     //allowin
     output                          ws_allowin    ,
     //from ms
-    input                           ms_to_ws_valid,
-    input  [`MS_TO_WS_BUS_WD -1:0]  ms_to_ws_bus  ,
+    input                           ms_to_ws_to_rf_busws_valid,
+    input  [`MS_TO_WS_BUS_WD-1:0]  ms_to_ws_bus  ,
     //to rf: for write back
-    output [`WS_TO_RF_BUS_WD -1:0]  ws_to_rf_bus  ,
+    output [`WB_BUS_WD-1:0]    ,
     //trace debug interface
     output [31:0] debug_wb_pc     ,
     output [ 3:0] debug_wb_rf_wen ,

@@ -1,4 +1,4 @@
-`include "mycpu.h"
+`include "myCPU.h"
 
 module exe_stage(
     input                          clk           ,
