@@ -7,10 +7,13 @@ module id_stage(
     output ds_allowin,
     // from fs
     input  fs_to_ds_valid,
-    input  [`FS_TO_DS_BUS_WB-1:0] fs_to_ds_bus,
+    input  [`FS_TO_DS_BUS_WD-1:0] fs_to_ds_bus,
     // to es
     output ds_to_es_valid,
-    output [`DS_TO_ES_BUS_WB-1:0] ds_to_es_bus,
+    output [`DS_TO_ES_BUS_WD-1:0] ds_to_es_bus,
+    
+    output [`BR_BUS_WD-1:0] br_bus,
+    input  [`WB_BUS_WD-1:0] wb_bus
 );
 
 /* handshaking */
@@ -91,7 +94,9 @@ wire inst_bltu;
 wire inst_bgeu;
 wire inst_lu12i_w;
 wire inst_pcaddu12i;
+
 wire inst_mem;
+wire inst_br;
 
 /* imm */
 wire need_ui5;
@@ -103,17 +108,16 @@ wire need_offs26;
 wire [31: 0] imm;
 
 /* regfile */
+wire raddr1_op;
 wire [ 4: 0] rf_raddr1;
 wire [31: 0] rf_rdata1;
 wire [ 4: 0] rf_raddr2;
 wire [31: 0] rf_rdata2;
-wire         rf_we;
+wire rf_we;
 wire [ 4: 0] rf_waddr;
 wire [31: 0] rf_wdata;
-
 wire [31: 0] rk_value;
 wire [31: 0] rj_value;
-// wire [31: 0] rd_value;
 
 /* alu */
 wire src1_is_pc;
@@ -127,8 +131,18 @@ wire mem_we;
 
 /* write back */
 wire [ 4: 0] wb_dest;
-wire wb_rf_we;
+wire wb_gr_we;
 wire wb_src_op; // 0: alu_result, 1: mem_data
+
+/* branch */
+wire sign;
+wire [31: 0] result;
+wire overflow;
+wire rj_eq_rd;
+wire rj_lt_rd;
+wire rj_ltu_rd;
+wire br_taken;
+wire [31: 0] br_target;
 
 assign ds_ready_go    = 1'b1;
 assign ds_allowin     = ~ds_valid | ds_ready_go & es_allowin;
@@ -213,7 +227,9 @@ assign inst_bltu      = op_31_26_d[6'h1a];
 assign inst_bgeu      = op_31_26_d[6'h1b];
 assign inst_lu12i_w   = op_31_26_d[6'h05] & ~inst[25];
 assign inst_pcaddu12i = op_31_26_d[6'h07] & ~inst[25];
+
 assign inst_mem       = inst_ld_b | inst_ld_h | inst_ld_w | inst_st_b | inst_st_h | inst_st_w | inst_ld_bu | inst_ld_hu;
+assign inst_br        = inst_beq | inst_bne | inst_blt | inst_bge | inst_bltu | inst_bgeu;
 
 assign need_ui5    = inst_slli_w | inst_srli_w | inst_srai_w;
 assign need_ui12   = inst_andi | inst_ori | inst_xori;
@@ -229,11 +245,12 @@ assign imm = need_ui12   ? {20'h0, i12} :
              need_offs26 ? {{ 4{i26[31]}}, i26, 2'b00} :
              32'h00000000;
 
-assign rf_raddr1 = rk;
+assign raddr1_op = inst_br | inst_st_w | inst_st_b | inst_st_h;
+assign rf_raddr1 = raddr1_op ? rd : rk;
 assign rf_raddr2 = rj;
-// assign rf_we     = 
-// assign rf_waddr  = 
-// assign rf_wdata  = 
+assign rf_we     = wb_bus[37:37];
+assign rf_waddr  = wb_bus[36:32];
+assign rf_wdata  = wb_bus[31: 0];
 
 regfile u_regfile(
     .clk    (clk      ),
@@ -246,7 +263,7 @@ regfile u_regfile(
     .wdata  (rf_wdata )
 );
 
-assign rk_value = rf_rdata1;
+assign rk_value = rf_rdata1; // or rd_value
 assign rj_value = rf_rdata2;
 
 assign src1_is_pc  = 1'b0;
@@ -277,8 +294,25 @@ assign mem_e     = inst_mem;
 assign mem_we    = inst_st_b | inst_st_h | inst_st_w;
 
 assign wb_dest   = inst_bl ? 5'h01 : rd;
-assign wb_rf_we  = ~inst_st_w & ~inst_st_b & ~inst_st_h & ~inst_beq & ~inst_bne & ~inst_blt & ~inst_bltu & ~inst_bge & ~inst_bgeu & ~inst_b;
+assign wb_gr_we  = ~inst_st_w & ~inst_st_b & ~inst_st_h & ~inst_beq & ~inst_bne & ~inst_blt & ~inst_bltu & ~inst_bge & ~inst_bgeu & ~inst_b;
 assign wb_src_op = inst_ld_b | inst_ld_h | inst_ld_w | inst_ld_bu | inst_ld_hu;
+
+assign {sign, result} = {1'b0, rj_value} + {1'b1, ~rk_value} + 33'd1;
+assign overflow = (rj_value[31] ^ rk_value[31]) & (rj_value[31] ^ result[31]);
+assign rj_eq_rd  = (rj_value == rk_value);
+assign rj_lt_rd  = result[31] ^ overflow;
+assign rj_ltu_rd = sign;
+assign br_taken  = inst_jirl | inst_b | inst_bl
+                 | (inst_beq  &  rj_eq_rd)
+                 | (inst_bne  & ~rj_eq_rd)
+                 | (inst_blt  &  rj_lt_rd)
+                 | (inst_bge  & ~rj_lt_rd)
+                 | (inst_bltu &  rj_ltu_rd)
+                 | (inst_bgeu & ~rj_ltu_rd);
+assign br_target = inst_jirl ? rj_value + imm : pc + imm;
+
+assign br_bus[32:32] = br_taken;
+assign br_bus[31: 0] = br_target;
 
 assign ds_to_es_bus[166:135] = pc;
 assign ds_to_es_bus[134:134] = inst_ld_b;
@@ -299,7 +333,7 @@ assign ds_to_es_bus[ 27:  9] = alu_op;
 assign ds_to_es_bus[  8:  8] = mem_e;
 assign ds_to_es_bus[  7:  7] = mem_we;
 assign ds_to_es_bus[  6:  2] = wb_dest;
-assign ds_to_es_bus[  1:  1] = wb_rf_we;
+assign ds_to_es_bus[  1:  1] = wb_gr_we;
 assign ds_to_es_bus[  0:  0] = wb_src_op;
 
 endmodule
