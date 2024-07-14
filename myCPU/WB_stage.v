@@ -54,7 +54,7 @@ always @(posedge clk) begin
     end
 end
 
-assign rf_we    = ws_gr_we&&ws_valid;
+assign rf_we    = ws_gr_we && ws_valid;
 assign rf_waddr = ws_dest;
 assign rf_wdata = ws_final_result;
 

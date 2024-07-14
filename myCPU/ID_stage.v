@@ -116,8 +116,9 @@ wire [31: 0] rj_value;
 // wire [31: 0] rd_value;
 
 /* alu */
-wire alu_src_op_1; // 0: rk, 1: imm
-wire alu_src_op_2; // 0: rj, 1: imm
+wire src1_is_pc;
+wire src2_is_imm;
+wire src2_is_4;
 wire [18: 0] alu_op;
 
 /* mem */
@@ -125,8 +126,9 @@ wire mem_e;
 wire mem_we;
 
 /* write back */
+wire [ 4: 0] wb_dest;
+wire wb_rf_we;
 wire wb_src_op; // 0: alu_result, 1: mem_data
-
 
 assign ds_ready_go    = 1'b1;
 assign ds_allowin     = ~ds_valid | ds_ready_go & es_allowin;
@@ -229,9 +231,9 @@ assign imm = need_ui12   ? {20'h0, i12} :
 
 assign rf_raddr1 = rk;
 assign rf_raddr2 = rj;
-assign rf_we     = ~inst_st_w & ~inst_st_b & ~inst_st_h & ~inst_beq & ~inst_bne & ~inst_blt & ~inst_bltu & ~inst_bge & ~inst_bgeu & ~inst_b;
-assign rf_waddr  = rd;
-// assign rf_wdata = 
+// assign rf_we     = 
+// assign rf_waddr  = 
+// assign rf_wdata  = 
 
 regfile u_regfile(
     .clk    (clk      ),
@@ -247,8 +249,9 @@ regfile u_regfile(
 assign rk_value = rf_rdata1;
 assign rj_value = rf_rdata2;
 
-assign alu_src_op_1 = inst_slli_w | inst_srli_w | inst_srai_w | inst_slti | inst_sltui | inst_addi_w | inst_andi | inst_ori | inst_xori | inst_ld_b | inst_ld_h | inst_ld_w | inst_st_b | inst_st_h | inst_st_w | inst_ld_bu | inst_ld_hu | inst_lu12i_w | inst_pcaddu12i;
-assign alu_src_op_2 = 1'b0;
+assign src1_is_pc  = 1'b0;
+assign src2_is_imm = inst_slli_w | inst_srli_w | inst_srai_w | inst_slti | inst_sltui | inst_addi_w | inst_andi | inst_ori | inst_xori | inst_ld_b | inst_ld_h | inst_ld_w | inst_st_b | inst_st_h | inst_st_w | inst_ld_bu | inst_ld_hu | inst_lu12i_w | inst_pcaddu12i;
+assign src2_is_4   = 1'b0;
 
 assign alu_op[ 0] = inst_add_w | inst_addi_w | inst_mem | inst_jirl | inst_bl | inst_pcaddu12i;
 assign alu_op[ 1] = inst_sub_w;
@@ -273,9 +276,30 @@ assign alu_op[18] = inst_mod_wu;
 assign mem_e     = inst_mem;
 assign mem_we    = inst_st_b | inst_st_h | inst_st_w;
 
+assign wb_dest   = inst_bl ? 5'h01 : rd;
+assign wb_rf_we  = ~inst_st_w & ~inst_st_b & ~inst_st_h & ~inst_beq & ~inst_bne & ~inst_blt & ~inst_bltu & ~inst_bge & ~inst_bgeu & ~inst_b;
 assign wb_src_op = inst_ld_b | inst_ld_h | inst_ld_w | inst_ld_bu | inst_ld_hu;
 
-// assign ds_to_es_bus[ 31:  0] = pc;
-// assign ds_to_es_bus[ : ] = ;
+assign ds_to_es_bus[166:135] = pc;
+assign ds_to_es_bus[134:134] = inst_ld_b;
+assign ds_to_es_bus[133:133] = inst_ld_h;
+assign ds_to_es_bus[132:132] = inst_ld_w;
+assign ds_to_es_bus[131:131] = inst_st_b;
+assign ds_to_es_bus[130:130] = inst_st_h;
+assign ds_to_es_bus[129:129] = inst_st_w;
+assign ds_to_es_bus[128:128] = inst_ld_bu;
+assign ds_to_es_bus[127:127] = inst_ld_hu;
+assign ds_to_es_bus[126: 95] = imm;
+assign ds_to_es_bus[ 94: 63] = rk_value;
+assign ds_to_es_bus[ 62: 31] = rj_value;
+assign ds_to_es_bus[ 30: 30] = src1_is_pc;
+assign ds_to_es_bus[ 29: 29] = src2_is_imm;
+assign ds_to_es_bus[ 28: 28] = src2_is_4;
+assign ds_to_es_bus[ 27:  9] = alu_op;
+assign ds_to_es_bus[  8:  8] = mem_e;
+assign ds_to_es_bus[  7:  7] = mem_we;
+assign ds_to_es_bus[  6:  2] = wb_dest;
+assign ds_to_es_bus[  1:  1] = wb_rf_we;
+assign ds_to_es_bus[  0:  0] = wb_src_op;
 
 endmodule

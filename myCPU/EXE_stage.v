@@ -47,27 +47,48 @@ wire        es_op_st_h    ;
 wire        es_op_st_w    ;
 wire        es_res_from_mem;
 /* --------------  Signals interface  -------------- */
-assign {es_alu_op      ,  //141:124
-        es_op_ld_w     ,  //77
-        es_op_ld_b     ,  //76
-        es_op_ld_bu    ,  //75
-        es_op_ld_h     ,  //74
-        es_op_ld_hu    ,  //73
-        es_op_st_w     ,  //72
-        es_op_st_b     ,  //71
-        es_op_st_h     ,  //70
-        es_src1_is_pc  ,  //121:121
-        es_src2_is_imm ,  //120:120
-        es_src2_is_4  ,  //119:119 modified
-        es_res_from_mem,  //118:118
-        es_gr_we       ,  //118:118
-        es_mem_we      ,  //117:117
-        es_dest        ,  //116:112
-        es_imm         ,  //111:96
-        es_rj_value    ,  //95 :64
-        es_rkd_value    ,  //63 :32
-        es_pc             //31 :0
-       } = ds_to_es_bus_r;//接收到的控制信号
+// assign {es_alu_op      ,  //141:124
+//         es_op_ld_w     ,  //77
+//         es_op_ld_b     ,  //76
+//         es_op_ld_bu    ,  //75
+//         es_op_ld_h     ,  //74
+//         es_op_ld_hu    ,  //73
+//         es_op_st_w     ,  //72
+//         es_op_st_b     ,  //71
+//         es_op_st_h     ,  //70
+//         es_src1_is_pc  ,  //121:121
+//         es_src2_is_imm ,  //120:120
+//         es_src2_is_4  ,  //119:119 modified
+//         es_res_from_mem,  //118:118
+//         es_gr_we       ,  //118:118
+//         es_mem_we      ,  //117:117
+//         es_dest        ,  //116:112
+//         es_imm         ,  //111:96
+//         es_rj_value    ,  //95 :64
+//         es_rkd_value    ,  //63 :32
+//         es_pc             //31 :0
+//        } = ds_to_es_bus_r;//接收到的控制信号
+assign es_pc          = ds_to_es_bus_r[166:135];
+assign es_op_ld_b     = ds_to_es_bus_r[134:134];
+assign es_op_ld_h     = ds_to_es_bus_r[133:133];
+assign es_op_ld_w     = ds_to_es_bus_r[132:132];
+assign es_op_st_b     = ds_to_es_bus_r[131:131];
+assign es_op_st_h     = ds_to_es_bus_r[130:130];
+assign es_op_st_w     = ds_to_es_bus_r[129:129];
+assign es_op_ld_bu    = ds_to_es_bus_r[128:128];
+assign es_op_ld_hu    = ds_to_es_bus_r[127:127];
+assign es_imm         = ds_to_es_bus_r[126: 95];
+assign es_rkd_value   = ds_to_es_bus_r[ 94: 63];
+assign es_rj_value    = ds_to_es_bus_r[ 62: 31];
+assign es_src1_is_pc  = ds_to_es_bus_r[ 30: 30];
+assign es_src2_is_imm = ds_to_es_bus_r[ 29: 29];
+assign es_src2_is_4   = ds_to_es_bus_r[ 28: 28];
+assign es_alu_op      = ds_to_es_bus_r[ 27:  9];
+assign es_mem_en      = ds_to_es_bus_r[  8:  8];
+// assign es_mem_we      = ds_to_es_bus_r[  7:  7];
+assign es_dest        = ds_to_es_bus_r[  6:  2];
+assign es_gr_we       = ds_to_es_bus_r[  1:  1];
+assign es_res_from_mem= ds_to_es_bus_r[  0:  0];
 
 assign es_to_ms_bus = {
                        es_op_ld_w     ,  //77
