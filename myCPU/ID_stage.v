@@ -3,11 +3,14 @@
 module id_stage(
     input  clk,
     input  reset,
+
     input  es_allowin,
     output ds_allowin,
+
     // from fs
     input  fs_to_ds_valid,
     input  [`FS_TO_DS_BUS_WD-1:0] fs_to_ds_bus,
+
     // to es
     output ds_to_es_valid,
     output [`DS_TO_ES_BUS_WD-1:0] ds_to_es_bus,
@@ -294,7 +297,7 @@ assign mem_e     = inst_mem;
 assign mem_we    = inst_st_b | inst_st_h | inst_st_w;
 
 assign wb_dest   = inst_bl ? 5'h01 : rd;
-assign wb_gr_we  = ~inst_st_w & ~inst_st_b & ~inst_st_h & ~inst_beq & ~inst_bne & ~inst_blt & ~inst_bltu & ~inst_bge & ~inst_bgeu & ~inst_b;
+assign wb_gr_we  = ~inst_st_w & ~inst_st_b & ~inst_st_h & ~inst_b & ~inst_br;
 assign wb_src_op = inst_ld_b | inst_ld_h | inst_ld_w | inst_ld_bu | inst_ld_hu;
 
 assign {sign, result} = {1'b0, rj_value} + {1'b1, ~rk_value} + 33'd1;
