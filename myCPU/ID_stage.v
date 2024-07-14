@@ -1,10 +1,26 @@
+`include "myCPU.h"
+
 module id_stage(
-    input               clk,
-    input               reset,
-    input  wire [31:0] inst_sram_rdata
+    input  clk,
+    input  reset,
+    input  es_allowin,
+    output ds_allowin,
+    // from fs
+    input  fs_to_ds_valid,
+    input  [`FS_TO_DS_BUS_WB-1:0] fs_to_ds_bus,
+    // to es
+    output ds_to_es_valid,
+    output [`DS_TO_ES_BUS_WB-1:0] ds_to_es_bus,
 );
 
+/* handshaking */
+wire ds_ready_go;
+reg  ds_valid;
+reg  [`FS_TO_DS_BUS_WD-1:0] fs_to_ds_bus_r;
+
+/* decode */
 wire [31: 0] inst;
+wire [31: 0] pc;
 
 wire [ 5: 0] op_31_26;
 wire [ 3: 0] op_25_22;
@@ -23,6 +39,10 @@ wire [15: 0] op_25_22_d;
 wire [ 3: 0] op_21_20_d;
 wire [31: 0] op_19_15_d;
 
+/* instruction */
+wire inst_rdcntid;
+wire inst_rdcntvl_w;
+wire inst_rdcntvh_w;
 wire inst_add_w;
 wire inst_sub_w;
 wire inst_slt;
@@ -71,8 +91,59 @@ wire inst_bltu;
 wire inst_bgeu;
 wire inst_lu12i_w;
 wire inst_pcaddu12i;
+wire inst_mem;
 
-assign inst = inst_sram_rdata;
+/* imm */
+wire need_ui5;
+wire need_ui12;
+wire need_si12;
+wire need_si20;
+wire need_offs16;
+wire need_offs26;
+wire [31: 0] imm;
+
+/* regfile */
+wire [ 4: 0] rf_raddr1;
+wire [31: 0] rf_rdata1;
+wire [ 4: 0] rf_raddr2;
+wire [31: 0] rf_rdata2;
+wire         rf_we;
+wire [ 4: 0] rf_waddr;
+wire [31: 0] rf_wdata;
+
+wire [31: 0] rk_value;
+wire [31: 0] rj_value;
+// wire [31: 0] rd_value;
+
+/* alu */
+wire src1_is_pc;
+wire src2_is_imm;
+wire src2_is_4;
+wire [18: 0] alu_op;
+
+/* mem */
+wire mem_e;
+wire mem_we;
+
+/* write back */
+wire [ 4: 0] wb_dest;
+wire wb_rf_we;
+wire wb_src_op; // 0: alu_result, 1: mem_data
+
+assign ds_ready_go    = 1'b1;
+assign ds_allowin     = ~ds_valid | ds_ready_go & es_allowin;
+assign ds_to_es_valid =  ds_valid & ds_ready_go;
+always @(posedge clk) begin
+    if (reset)
+        ds_valid <= 1'b0;
+    else if (ds_allowin)
+        ds_valid <= fs_to_ds_valid;
+    if (fs_to_ds_valid && ds_allowin)
+        fs_to_ds_bus_r <= fs_to_ds_bus;
+end
+
+assign inst = fs_to_ds_bus_r[63:32];
+assign pc   = fs_to_ds_bus_r[31: 0];
 
 assign op_31_26 = inst[31:26];
 assign op_25_22 = inst[25:22];
@@ -91,6 +162,9 @@ decoder_4_16 u_dec1(.in(op_25_22), .out(op_25_22_d));
 decoder_2_4  u_dec2(.in(op_21_20), .out(op_21_20_d));
 decoder_5_32 u_dec3(.in(op_19_15), .out(op_19_15_d));
 
+assign inst_rdcntid   = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h0] & op_19_15_d[5'h00] & (rk == 5'h18) & (rd == 5'h00);
+assign inst_rdcntvl_w = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h0] & op_19_15_d[5'h00] & (rk == 5'h18) & (rj == 5'h00);
+assign inst_rdcntvh_w = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h0] & op_19_15_d[5'h00] & (rk == 5'h19) & (rj == 5'h00);
 assign inst_add_w     = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h00];
 assign inst_sub_w     = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h02];
 assign inst_slt       = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h04];
@@ -139,5 +213,93 @@ assign inst_bltu      = op_31_26_d[6'h1a];
 assign inst_bgeu      = op_31_26_d[6'h1b];
 assign inst_lu12i_w   = op_31_26_d[6'h05] & ~inst[25];
 assign inst_pcaddu12i = op_31_26_d[6'h07] & ~inst[25];
+assign inst_mem       = inst_ld_b | inst_ld_h | inst_ld_w | inst_st_b | inst_st_h | inst_st_w | inst_ld_bu | inst_ld_hu;
+
+assign need_ui5    = inst_slli_w | inst_srli_w | inst_srai_w;
+assign need_ui12   = inst_andi | inst_ori | inst_xori;
+assign need_si12   = inst_slti | inst_sltui | inst_addi_w | inst_ld_b | inst_ld_h | inst_ld_w | inst_st_b | inst_st_h | inst_st_w | inst_ld_bu | inst_ld_hu;
+assign need_si20   = inst_lu12i_w | inst_pcaddu12i;
+assign need_offs16 = inst_jirl | inst_beq | inst_bne | inst_blt | inst_bge | inst_bltu | inst_bgeu;
+assign need_offs26 = inst_b | inst_bl;
+
+assign imm = need_ui12   ? {20'h0, i12} :
+             need_si12   ? {{20{i12[11]}}, i12} :
+             need_si20   ? {{12{i20[19]}}, i20} :
+             need_offs16 ? {{14{i16[31]}}, i16, 2'b00} :
+             need_offs26 ? {{ 4{i26[31]}}, i26, 2'b00} :
+             32'h00000000;
+
+assign rf_raddr1 = rk;
+assign rf_raddr2 = rj;
+// assign rf_we     = 
+// assign rf_waddr  = 
+// assign rf_wdata  = 
+
+regfile u_regfile(
+    .clk    (clk      ),
+    .raddr1 (rf_raddr1),
+    .rdata1 (rf_rdata1),
+    .raddr2 (rf_raddr2),
+    .rdata2 (rf_rdata2),
+    .we     (rf_we    ),
+    .waddr  (rf_waddr ),
+    .wdata  (rf_wdata )
+);
+
+assign rk_value = rf_rdata1;
+assign rj_value = rf_rdata2;
+
+assign src1_is_pc  = 1'b0;
+assign src2_is_imm = inst_slli_w | inst_srli_w | inst_srai_w | inst_slti | inst_sltui | inst_addi_w | inst_andi | inst_ori | inst_xori | inst_ld_b | inst_ld_h | inst_ld_w | inst_st_b | inst_st_h | inst_st_w | inst_ld_bu | inst_ld_hu | inst_lu12i_w | inst_pcaddu12i;
+assign src2_is_4   = 1'b0;
+
+assign alu_op[ 0] = inst_add_w | inst_addi_w | inst_mem | inst_jirl | inst_bl | inst_pcaddu12i;
+assign alu_op[ 1] = inst_sub_w;
+assign alu_op[ 2] = inst_slt | inst_slti;
+assign alu_op[ 3] = inst_sltu | inst_sltui;
+assign alu_op[ 4] = inst_and | inst_andi;
+assign alu_op[ 5] = inst_nor; 
+assign alu_op[ 6] = inst_or | inst_ori;
+assign alu_op[ 7] = inst_xor | inst_xori;
+assign alu_op[ 8] = inst_slli_w | inst_sll_w;
+assign alu_op[ 9] = inst_srli_w | inst_srl_w;
+assign alu_op[10] = inst_srai_w | inst_sra_w;
+assign alu_op[11] = inst_lu12i_w;
+assign alu_op[12] = inst_mul_w;
+assign alu_op[13] = inst_mulh_w;
+assign alu_op[14] = inst_mulh_wu;
+assign alu_op[15] = inst_div_w;
+assign alu_op[16] = inst_div_wu;
+assign alu_op[17] = inst_mod_w;
+assign alu_op[18] = inst_mod_wu;
+
+assign mem_e     = inst_mem;
+assign mem_we    = inst_st_b | inst_st_h | inst_st_w;
+
+assign wb_dest   = inst_bl ? 5'h01 : rd;
+assign wb_rf_we  = ~inst_st_w & ~inst_st_b & ~inst_st_h & ~inst_beq & ~inst_bne & ~inst_blt & ~inst_bltu & ~inst_bge & ~inst_bgeu & ~inst_b;
+assign wb_src_op = inst_ld_b | inst_ld_h | inst_ld_w | inst_ld_bu | inst_ld_hu;
+
+assign ds_to_es_bus[166:135] = pc;
+assign ds_to_es_bus[134:134] = inst_ld_b;
+assign ds_to_es_bus[133:133] = inst_ld_h;
+assign ds_to_es_bus[132:132] = inst_ld_w;
+assign ds_to_es_bus[131:131] = inst_st_b;
+assign ds_to_es_bus[130:130] = inst_st_h;
+assign ds_to_es_bus[129:129] = inst_st_w;
+assign ds_to_es_bus[128:128] = inst_ld_bu;
+assign ds_to_es_bus[127:127] = inst_ld_hu;
+assign ds_to_es_bus[126: 95] = imm;
+assign ds_to_es_bus[ 94: 63] = rk_value;
+assign ds_to_es_bus[ 62: 31] = rj_value;
+assign ds_to_es_bus[ 30: 30] = src1_is_pc;
+assign ds_to_es_bus[ 29: 29] = src2_is_imm;
+assign ds_to_es_bus[ 28: 28] = src2_is_4;
+assign ds_to_es_bus[ 27:  9] = alu_op;
+assign ds_to_es_bus[  8:  8] = mem_e;
+assign ds_to_es_bus[  7:  7] = mem_we;
+assign ds_to_es_bus[  6:  2] = wb_dest;
+assign ds_to_es_bus[  1:  1] = wb_rf_we;
+assign ds_to_es_bus[  0:  0] = wb_src_op;
 
 endmodule
