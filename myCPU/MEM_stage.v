@@ -26,6 +26,7 @@ wire [ 4:0] ms_dest;
 wire [31:0] ms_alu_result;
 wire [31:0] ms_pc;
 assign {
+        ms_mem_we      ,  //79
         ms_op_ld_w     ,  //78
         ms_op_ld_b     ,  //77
         ms_op_ld_bu    ,  //76
@@ -62,7 +63,7 @@ always @(posedge clk) begin
     end
 
     if (es_to_ms_valid && ms_allowin) begin
-        es_to_ms_bus_r  = es_to_ms_bus;
+        es_to_ms_bus_r  <= es_to_ms_bus;
     end
 end
 

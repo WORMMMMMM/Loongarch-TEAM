@@ -153,6 +153,8 @@ assign ds_to_es_valid =  ds_valid & ds_ready_go;
 always @(posedge clk) begin
     if (reset)
         ds_valid <= 1'b0;
+    else if (br_taken)    //////////////
+        ds_valid <= 1'b0;
     else if (ds_allowin)
         ds_valid <= fs_to_ds_valid;
     if (fs_to_ds_valid && ds_allowin)
@@ -244,8 +246,8 @@ assign need_offs26 = inst_b | inst_bl;
 assign imm = need_ui12   ? {20'h0, i12} :
              need_si12   ? {{20{i12[11]}}, i12} :
              need_si20   ? {{12{i20[19]}}, i20} :
-             need_offs16 ? {{14{i16[31]}}, i16, 2'b00} :
-             need_offs26 ? {{ 4{i26[31]}}, i26, 2'b00} :
+             need_offs16 ? {{14{i16[15]}}, i16, 2'b00} :
+             need_offs26 ? {{ 4{i26[25]}}, i26, 2'b00} :
              32'h00000000;
 
 assign raddr1_op = inst_br | inst_st_w | inst_st_b | inst_st_h;
@@ -305,13 +307,14 @@ assign overflow = (rj_value[31] ^ rk_value[31]) & (rj_value[31] ^ result[31]);
 assign rj_eq_rd  = (rj_value == rk_value);
 assign rj_lt_rd  = result[31] ^ overflow;
 assign rj_ltu_rd = sign;
-assign br_taken  = inst_jirl | inst_b | inst_bl
+assign br_taken  = ( inst_jirl | inst_b | inst_bl
                  | (inst_beq  &  rj_eq_rd)
                  | (inst_bne  & ~rj_eq_rd)
                  | (inst_blt  &  rj_lt_rd)
                  | (inst_bge  & ~rj_lt_rd)
                  | (inst_bltu &  rj_ltu_rd)
-                 | (inst_bgeu & ~rj_ltu_rd);
+                 | (inst_bgeu & ~rj_ltu_rd)
+                 ) && ds_valid && ds_ready_go;  ///////
 assign br_target = inst_jirl ? rj_value + imm : pc + imm;
 
 assign br_bus[32:32] = br_taken;
