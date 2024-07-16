@@ -33,7 +33,7 @@ wire        es_src2_is_4  ;//前边也要�?
 wire        es_gr_we      ;
 wire        es_mem_we     ;
 wire [ 4:0] es_dest       ;
-wire [15:0] es_imm        ;
+wire [31:0] es_imm        ;
 wire [31:0] es_rj_value   ;
 wire [31:0] es_rkd_value   ;
 wire [31:0] es_pc         ;
@@ -91,16 +91,16 @@ assign es_gr_we       = ds_to_es_bus_r[  1:  1];
 assign es_res_from_mem= ds_to_es_bus_r[  0:  0];
 
 assign es_to_ms_bus = {
-                       es_op_ld_w     ,  //77
-                       es_op_ld_b     ,  //76
-                       es_op_ld_bu    ,  //75
-                       es_op_ld_h     ,  //74
-                       es_op_ld_hu    ,  //73
-                       es_op_st_w     ,  //72
-                       es_op_st_b     ,  //71
-                       es_op_st_h     ,  //70
-                       es_res_from_mem,  //69
-                       es_mem_we      ,  //70
+                       es_mem_we      ,  //79
+                       es_op_ld_w     ,  //78
+                       es_op_ld_b     ,  //77
+                       es_op_ld_bu    ,  //76
+                       es_op_ld_h     ,  //75
+                       es_op_ld_hu    ,  //74
+                       es_op_st_w     ,  //73
+                       es_op_st_b     ,  //72
+                       es_op_st_h     ,  //71
+                       es_res_from_mem,  //70
                        es_gr_we       ,  //69:69
                        es_dest        ,  //68:64
                        es_alu_result  ,  //63:32

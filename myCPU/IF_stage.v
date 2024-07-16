@@ -27,8 +27,10 @@ wire [31:0] seq_pc;
 wire [31:0] nextpc;
 
 wire         br_taken;
+wire         br_taken_r;
 wire [ 31:0] br_target;
-assign {br_taken,br_target} = br_bus;
+assign {br_taken_r,br_target} = br_bus;
+assign br_taken = (br_taken_r !==1'bx) ? br_taken_r : 1'b0;
 
 wire [31:0] fs_inst;
 reg  [31:0] fs_pc;
@@ -53,7 +55,7 @@ always @(posedge clk) begin
     end
 
     if (reset) begin
-        fs_pc <= 32'h1bfffffc;  //trick: to make nextpc be 0xbfc00000 during reset 
+        fs_pc <= 32'h1bfffffc;  //trick: to make nextpc be 0xbfc00000 during reset +
     end
     else if (to_fs_valid && fs_allowin) begin
         fs_pc <= nextpc;
