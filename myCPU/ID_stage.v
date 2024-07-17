@@ -272,7 +272,8 @@ regfile u_regfile(
     .wdata  (rf_wdata )
 );
 
-assign src1_is_pc  = inst_bl | inst_jirl ? 1'b1 : 1'b0;
+
+assign src1_is_pc  = inst_bl | inst_jirl | inst_pcaddu12i ? 1'b1 : 1'b0;
 assign src2_is_imm = inst_slli_w | inst_srli_w | inst_srai_w | inst_slti | inst_sltui | inst_addi_w | inst_andi | inst_ori | inst_xori | inst_ld_b | inst_ld_h | inst_ld_w | inst_st_b | inst_st_h | inst_st_w | inst_ld_bu | inst_ld_hu | inst_lu12i_w | inst_pcaddu12i;
 assign src2_is_4   = inst_bl | inst_jirl ? 1'b1 : 1'b0;
 
