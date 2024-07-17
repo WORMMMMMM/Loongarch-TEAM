@@ -19,7 +19,7 @@ module id_stage(
     input  [`WB_BUS_WD-1:0] wb_bus,
     input  [`ES_FORWARD_WD   -1:0] es_forward,
     input  [`MS_FORWARD_WD   -1:0] ms_forward,
-    input  [`WS_FORWARD_WD   -1:0] ws_forward,
+    input  [`WS_FORWARD_WD   -1:0] ws_forward
 );
 
 /* handshaking */
@@ -151,8 +151,9 @@ wire br_taken;
 wire [31: 0] br_target;
 /*----------------- Handshaking-----------------*/
 wire ds_ready_go;
+wire ds_ready_go_r;
 reg  ds_valid;
-assign ds_ready_go    = ~(es_valid&&es_inst_load&&(raw_ed_1|raw_ed_2))//如果发生load-use冒险，则ID停一个阶段。
+
 assign ds_allowin     = ~ds_valid | ds_ready_go & es_allowin;
 assign ds_to_es_valid =  ds_valid & ds_ready_go;
 always @(posedge clk) begin
@@ -355,7 +356,7 @@ wire [ 4: 0] es_dest;
 wire [31: 0] es_alu_result;
 wire [31: 0] es_pc;
 wire es_inst_load;
-assign ex_valid     = es_forward[0];
+assign es_valid     = es_forward[0];
 assign es_gr_we     = es_forward[1];
 assign es_dest      = es_forward[6:2];
 assign es_alu_result= es_forward[38:7];
@@ -391,37 +392,57 @@ assign ws_pc           = ws_forward[70:39];
 
 //RAW hazard
 wire raw;
-wire raw_ed_1;//ES to DS 的数据冒险
+wire raw_ed_1;//ES to DS 的数据冒�?
 wire raw_ed_2;
 wire raw_md_1;
 wire raw_md_2;
 wire raw_wd_1;
 wire raw_wd_2;
+
+assign ds_ready_go_r  = ~(es_valid&&es_inst_load&&(raw_ed_1|raw_ed_2));//如果发生load-use冒险，则ID停一个阶段�?
+assign ds_ready_go    = (ds_ready_go_r === 1'bx) ? 1'b1 : ds_ready_go_r;
+
 assign no_src1 = inst_b || inst_bl || inst_pcaddu12i || 
-                 inst_csrrd || inst_csrwr || inst_rdcntvl_w || inst_rdcntvh_w || inst_rdcntid;
+                 inst_rdcntvl_w || inst_rdcntvh_w || inst_rdcntid;
 
 assign no_src2 = inst_b || inst_bl || inst_jirl || inst_addi_w ||
                  inst_ld_w || inst_ld_b || inst_ld_bu || inst_ld_h || inst_ld_hu ||
                  inst_slli_w || inst_srli_w || inst_srai_w || inst_slti || inst_sltui ||
-                 inst_andi || inst_ori || inst_xori || inst_pcaddu12i || inst_csrrd || inst_rdcntvh_w || inst_rdcntid;
+                 inst_andi || inst_ori || inst_xori || inst_pcaddu12i || inst_rdcntvh_w || inst_rdcntid;
 
-assign src1 = no_src1 ? 5'd0 : rf_raddr1;
-assign src2 = no_src2 ? 5'd0 : rf_raddr2;
+wire [4:0] src1;
+wire [4:0] src2;
+assign src1 = no_src1 ? 5'd0 : rf_raddr2;
+assign src2 = no_src2 ? 5'd0 : rf_raddr1;
 
-assign raw_ed_1 = es_valid && (src1 == es_dest) && (src1!=5'h0)&&(es_dest!=5'h0) && es_gr_we;
-assign raw_ed_2 = es_valid && (src2 == es_dest) && (src2!=5'h0)&&(es_dest!=5'h0) && es_gr_we;
-assign raw_md_1 = ms_valid && (src1 == ms_dest) && (src1!=5'h0)&&(ms_dest!=5'h0) && ms_gr_we;
-assign raw_md_2 = ms_valid && (src2 == ms_dest) && (src2!=5'h0)&&(ms_dest!=5'h0) && ms_gr_we;
-assign raw_wd_1 = ws_valid && (src1 == ws_dest) && (src1!=5'h0)&&(ws_dest!=5'h0) && ws_gr_we;
-assign raw_wd_2 = ws_valid && (src2 == ws_dest) && (src2!=5'h0)&&(ws_dest!=5'h0) && ws_gr_we;
+wire raw_ed_1_r;
+wire raw_ed_2_r;
+wire raw_md_1_r;
+wire raw_md_2_r;
+wire raw_wd_1_r;
+wire raw_wd_2_r;
+ 
+assign raw_ed_1_r = es_valid && (src1 == es_dest) && (src1!=5'h0)&&(es_dest!=5'h0) && es_gr_we;
+assign raw_ed_2_r = es_valid && (src2 == es_dest) && (src2!=5'h0)&&(es_dest!=5'h0) && es_gr_we;
+assign raw_md_1_r = ms_valid && (src1 == ms_dest) && (src1!=5'h0)&&(ms_dest!=5'h0) && ms_gr_we;
+assign raw_md_2_r = ms_valid && (src2 == ms_dest) && (src2!=5'h0)&&(ms_dest!=5'h0) && ms_gr_we;
+assign raw_wd_1_r = ws_valid && (src1 == ws_dest) && (src1!=5'h0)&&(ws_dest!=5'h0) && ws_gr_we;
+assign raw_wd_2_r = ws_valid && (src2 == ws_dest) && (src2!=5'h0)&&(ws_dest!=5'h0) && ws_gr_we;
+
+assign raw_ed_1 = (raw_ed_1_r === 1'bx) ? 1'b0 : raw_ed_1_r;
+assign raw_ed_2 = (raw_ed_2_r === 1'bx) ? 1'b0 : raw_ed_2_r;
+assign raw_md_1 = (raw_md_1_r === 1'bx) ? 1'b0 : raw_md_1_r;
+assign raw_md_2 = (raw_md_2_r === 1'bx) ? 1'b0 : raw_md_2_r;
+assign raw_wd_1 = (raw_wd_1_r === 1'bx) ? 1'b0 : raw_wd_1_r;
+assign raw_wd_2 = (raw_wd_2_r === 1'bx) ? 1'b0 : raw_wd_2_r;
 
 assign raw=raw_ed_1 | raw_ed_2 | raw_md_1 | raw_md_2 | raw_wd_1 | raw_wd_2;
 
 assign rj_value= raw_ed_1 ? es_alu_result :
                  raw_md_1 ? ms_final_result :
-                 raw_wd_1 ? ws_final_result : rf_rdata1;
+                 raw_wd_1 ? ws_final_result : rf_rdata2;
 assign rk_value= raw_ed_2 ? es_alu_result :  
                  raw_md_2 ? ms_final_result :
-                 raw_wd_2 ? ws_final_result : rf_rdata2;
+                 raw_wd_2 ? ws_final_result : rf_rdata1;
 
 endmodule
