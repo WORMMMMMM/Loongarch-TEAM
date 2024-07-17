@@ -26,6 +26,7 @@ wire        ms_gr_we;
 wire [ 4:0] ms_dest;
 wire [31:0] ms_alu_result;
 wire [31:0] ms_pc;
+wire [ 1:0] ms_addr_lowbits;
 
 assign ms_pc = es_to_ms_bus_r[31:0];
 assign ms_alu_result = es_to_ms_bus_r[63:32];
@@ -41,6 +42,7 @@ assign ms_op_ld_bu = es_to_ms_bus_r[76];
 assign ms_op_ld_b = es_to_ms_bus_r[77];
 assign ms_op_ld_w = es_to_ms_bus_r[78];
 assign ms_mem_we = es_to_ms_bus_r[79];
+assign ms_addr_lowbits = es_to_ms_bus_r[81:80];
 
 //MS to WS bus
 wire [31:0] mem_result;
@@ -51,6 +53,8 @@ assign ms_to_ws_bus [63:32] = ms_final_result;
 assign ms_to_ws_bus [68:64] = ms_dest;
 assign ms_to_ws_bus [69] = ms_gr_we;
 
+reg         ms_valid;
+wire        ms_ready_go;
 //forward to DS
 assign ms_forward [0] = ms_valid;
 assign ms_forward [1] = ms_gr_we;
@@ -59,8 +63,7 @@ assign ms_forward [38:7] = ms_final_result;
 assign ms_forward [39] = ms_res_from_mem;
 assign ms_forward [71:40] = ms_pc;
 /*----------------- Handshaking-----------------*/                      
-reg         ms_valid;
-wire        ms_ready_go;
+
 assign ms_ready_go    = 1'b1;
 assign ms_allowin     = !ms_valid || ms_ready_go && ws_allowin;
 assign ms_to_ws_valid = ms_valid && ms_ready_go;
