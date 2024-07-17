@@ -26,6 +26,7 @@ wire [ 4:0] ms_dest;
 wire [31:0] ms_alu_result;
 wire [31:0] ms_pc;
 assign {
+        ms_addr_lowbits,  //80
         ms_mem_we      ,  //79
         ms_op_ld_w     ,  //78
         ms_op_ld_b     ,  //77
@@ -67,7 +68,58 @@ always @(posedge clk) begin
     end
 end
 
-assign mem_result = data_sram_rdata;
+
+/* --------------  MEM read interface  -------------- */
+
+wire [7:0]  mem_byte_data;
+wire [15:0] mem_halfword_data;
+
+// SRAM data buffer
+reg  [32:0] data_sram_rdata_buf;
+reg        data_sram_rdata_buf_valid;
+wire [32:0] final_data_sram_rdata;
+
+wire data_sram_data_ok = 1'b1;
+
+always @(posedge clk) begin
+    if (reset)
+        data_sram_rdata_buf <= 32'b0;
+    else if (data_sram_data_ok && ~ws_allowin)      // If data is back, WB stage do not allow in
+                                                    // Then write it into buffer, wait for allowin to rise
+        data_sram_rdata_buf <= data_sram_rdata;
+end
+
+always @(posedge clk) begin
+    if (reset)
+        data_sram_rdata_buf_valid <= 1'b0;
+    else if (data_sram_data_ok && ~ws_allowin)
+        data_sram_rdata_buf_valid <= 1'b1;
+    else if (ms_ready_go && ws_allowin)
+        data_sram_rdata_buf_valid <= 1'b0;
+end
+
+assign final_data_sram_rdata = data_sram_rdata_buf_valid ? data_sram_rdata_buf : data_sram_rdata;
+
+// mem_byte_data mux 
+assign addr00 = ms_addr_lowbits == 2'b00;
+assign addr01 = ms_addr_lowbits == 2'b01;
+assign addr10 = ms_addr_lowbits == 2'b10;
+assign addr11 = ms_addr_lowbits == 2'b11;
+assign mem_byte_data = {8{addr00}} & final_data_sram_rdata[7:0]   |
+                       {8{addr01}} & final_data_sram_rdata[15:8]  |
+                       {8{addr10}} & final_data_sram_rdata[23:16] |
+                       {8{addr11}} & final_data_sram_rdata[31:24];
+
+// mem_halfword_data mux
+assign mem_halfword_data = {16{addr00}} & final_data_sram_rdata[15:0] |
+                           {16{addr10}} & final_data_sram_rdata[31:16];
+// mem_result mux
+assign mem_result = {32{ms_op_ld_w}}  & final_data_sram_rdata                                 |
+                    {32{ms_op_ld_b}}  & {{24{mem_byte_data[7]}}, mem_byte_data}         |
+                    {32{ms_op_ld_bu}} & {24'b0, mem_byte_data}                          |
+                    {32{ms_op_ld_h}}  & {{16{mem_halfword_data[15]}}, mem_halfword_data}|
+                    {32{ms_op_ld_hu}} & {16'b0, mem_halfword_data};
+
 
 assign ms_final_result = ms_res_from_mem ? mem_result
                                          : ms_alu_result;

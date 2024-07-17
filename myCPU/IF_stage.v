@@ -67,6 +67,6 @@ assign inst_sram_we   = 4'h0;
 assign inst_sram_addr  = nextpc;
 assign inst_sram_wdata = 32'b0;
 
-assign fs_inst         = inst_sram_rdata;
+assign fs_inst         = br_taken ? 32'h02800000 : inst_sram_rdata;
 
 endmodule
