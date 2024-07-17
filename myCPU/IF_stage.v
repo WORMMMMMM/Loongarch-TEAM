@@ -1,36 +1,34 @@
 `include "myCPU.h"
 
 module if_stage(
-    input                          clk            ,
-    input                          reset          ,
-    //allwoin
-    input                          ds_allowin     ,
-    //brbus
-    input  [`BR_BUS_WD       -1:0] br_bus         ,
-    //to ds
-    output                         fs_to_ds_valid ,
-    output [`FS_TO_DS_BUS_WD -1:0] fs_to_ds_bus   ,
+    input  clk,
+    input  reset,
+    input  ds_allowin,
+    // to ds
+    output fs_to_ds_valid,
+    output [`FS_TO_DS_BUS_WD-1:0] fs_to_ds_bus,
+    input  [`BR_BUS_WD-1:0] br_bus,
     // inst sram interface
-    output        inst_sram_en   ,
-    output [ 3:0] inst_sram_we  ,
-    output [31:0] inst_sram_addr ,
+    output        inst_sram_en,
+    output [ 3:0] inst_sram_we,
+    output [31:0] inst_sram_addr,
     output [31:0] inst_sram_wdata,
-    input  [31:0] inst_sram_rdata                             //输入和读取是否有问题�??
+    input  [31:0] inst_sram_rdata
 );
 
-reg         fs_valid;
-wire        fs_ready_go;
-wire        fs_allowin;
-wire        to_fs_valid;
+reg  fs_valid;
+wire fs_ready_go;
+wire fs_allowin;
+wire to_fs_valid;
 
 wire [31:0] seq_pc;
 wire [31:0] nextpc;
 
-wire         br_taken;
-wire         br_taken_r;
-wire [ 31:0] br_target;
-assign {br_taken_r,br_target} = br_bus;
-assign br_taken = (br_taken_r !==1'bx) ? br_taken_r : 1'b0;
+wire br_taken;
+wire br_taken_r;
+wire [31:0] br_target;
+assign {br_taken_r, br_target} = br_bus;
+assign br_taken = br_taken_r !== 1'bx ? br_taken_r : 1'b0;
 
 wire [31:0] fs_inst;
 reg  [31:0] fs_pc;
@@ -63,7 +61,7 @@ always @(posedge clk) begin
 end
 
 assign inst_sram_en    = to_fs_valid && fs_allowin;
-assign inst_sram_we   = 4'h0;
+assign inst_sram_we    = 4'h0;
 assign inst_sram_addr  = nextpc;
 assign inst_sram_wdata = 32'b0;
 

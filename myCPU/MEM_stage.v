@@ -68,9 +68,7 @@ always @(posedge clk) begin
     end
 end
 
-
 /* --------------  MEM read interface  -------------- */
-
 wire [7:0]  mem_byte_data;
 wire [15:0] mem_halfword_data;
 
@@ -119,7 +117,6 @@ assign mem_result = {32{ms_op_ld_w}}  & final_data_sram_rdata                   
                     {32{ms_op_ld_bu}} & {24'b0, mem_byte_data}                          |
                     {32{ms_op_ld_h}}  & {{16{mem_halfword_data[15]}}, mem_halfword_data}|
                     {32{ms_op_ld_hu}} & {16'b0, mem_halfword_data};
-
 
 assign ms_final_result = ms_res_from_mem ? mem_result
                                          : ms_alu_result;

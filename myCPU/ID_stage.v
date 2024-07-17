@@ -3,18 +3,14 @@
 module id_stage(
     input  clk,
     input  reset,
-
     input  es_allowin,
     output ds_allowin,
-
     // from fs
     input  fs_to_ds_valid,
     input  [`FS_TO_DS_BUS_WD-1:0] fs_to_ds_bus,
-
     // to es
     output ds_to_es_valid,
     output [`DS_TO_ES_BUS_WD-1:0] ds_to_es_bus,
-    
     output [`BR_BUS_WD-1:0] br_bus,
     input  [`WB_BUS_WD-1:0] wb_bus
 );
@@ -130,7 +126,7 @@ wire src2_is_4;
 wire [18: 0] alu_op;
 
 /* mem */
-wire mem_e;
+wire mem_en;
 wire mem_we;
 
 /* write back */
@@ -298,7 +294,7 @@ assign alu_op[16] = inst_div_wu;
 assign alu_op[17] = inst_mod_w;
 assign alu_op[18] = inst_mod_wu;
 
-assign mem_e     = inst_mem;
+assign mem_en    = inst_mem;
 assign mem_we    = inst_st_b | inst_st_h | inst_st_w;
 
 assign wb_dest   = inst_bl ? 5'h01 : rd;
@@ -311,13 +307,12 @@ assign rj_eq_rd  = (rj_value == rk_value);
 assign rj_lt_rd  = result[31] ^ overflow;
 assign rj_ltu_rd = sign;
 assign br_taken  = ( inst_jirl | inst_b | inst_bl
-                 | (inst_beq  &  rj_eq_rd)
-                 | (inst_bne  & ~rj_eq_rd)
-                 | (inst_blt  &  rj_lt_rd)
-                 | (inst_bge  & ~rj_lt_rd)
-                 | (inst_bltu &  rj_ltu_rd)
-                 | (inst_bgeu & ~rj_ltu_rd)
-                 ) ;//&& ds_valid && ds_ready_go;  ///////
+                  | (inst_beq  &  rj_eq_rd)
+                  | (inst_bne  & ~rj_eq_rd)
+                  | (inst_blt  &  rj_lt_rd)
+                  | (inst_bge  & ~rj_lt_rd)
+                  | (inst_bltu &  rj_ltu_rd)
+                  | (inst_bgeu & ~rj_ltu_rd) ); // && ds_valid && ds_ready_go;  ///////
 assign br_target = inst_jirl ? rj_value + imm : pc + imm;
 
 assign br_bus[32:32] = br_taken;
@@ -339,7 +334,7 @@ assign ds_to_es_bus[ 30: 30] = src1_is_pc;
 assign ds_to_es_bus[ 29: 29] = src2_is_imm;
 assign ds_to_es_bus[ 28: 28] = src2_is_4;
 assign ds_to_es_bus[ 27:  9] = alu_op;
-assign ds_to_es_bus[  8:  8] = mem_e;
+assign ds_to_es_bus[  8:  8] = mem_en;
 assign ds_to_es_bus[  7:  7] = mem_we;
 assign ds_to_es_bus[  6:  2] = wb_dest;
 assign ds_to_es_bus[  1:  1] = wb_gr_we;
