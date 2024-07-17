@@ -10,35 +10,44 @@ module wb_stage(
     input  [`MS_TO_WS_BUS_WD-1:0]  ms_to_ws_bus  ,
     //to rf: for write back
     output [`WB_BUS_WD-1:0]        ws_to_rf_bus  ,
+    //forward to ds
+    output [`WS_FORWARD_WD-1:0]    ws_forward    ,
     //trace debug interface
     output [31:0] debug_wb_pc     ,
     output [ 3:0] debug_wb_rf_we ,
     output [ 4:0] debug_wb_rf_wnum,
     output [31:0] debug_wb_rf_wdata
 );
-
-reg         ws_valid;
-wire        ws_ready_go;
-
+/* --------------  Signal interface -------------- */
+// MS to WS bus
 reg [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus_r;
 wire        ws_gr_we;
 wire [ 4:0] ws_dest;
 wire [31:0] ws_final_result;
 wire [31:0] ws_pc;
-assign {ws_gr_we       ,  //69:69
-        ws_dest        ,  //68:64
-        ws_final_result,  //63:32
-        ws_pc             //31:0
-       } = ms_to_ws_bus_r;
+assign ws_pc = ms_to_ws_bus_r[31:0];
+assign ws_final_result = ms_to_ws_bus_r[63:32];
+assign ws_dest = ms_to_ws_bus_r[68:64];
+assign ws_gr_we = ms_to_ws_bus_r[69];
 
+//WS to RF bus
 wire        rf_we;
 wire [4 :0] rf_waddr;
 wire [31:0] rf_wdata;
-assign ws_to_rf_bus = {rf_we   ,  //37:37
-                       rf_waddr,  //36:32
-                       rf_wdata   //31:0
-                      };
+assign ws_to_rf_bus [31:0] = rf_wdata;
+assign ws_to_rf_bus [36:32] = rf_waddr;
+assign ws_to_rf_bus [37] = rf_we;
 
+//forward to DS
+assign ws_forward [0] = ws_valid;
+assign ws_forward [1] = ws_gr_we;
+assign ws_forward [6:2] = ws_dest;
+assign ws_forward [38:7] = ws_final_result;
+assign ws_forward [70:39] = ws_pc;
+
+/*----------------- Handshaking-----------------*/
+reg         ws_valid;
+wire        ws_ready_go;
 assign ws_ready_go = 1'b1;
 assign ws_allowin  = !ws_valid || ws_ready_go;
 always @(posedge clk) begin
