@@ -37,6 +37,7 @@ wire [ 4: 0] op_19_15;
 wire [ 4: 0] rk;
 wire [ 4: 0] rj;
 wire [ 4: 0] rd;
+wire [ 4: 0] i5;
 wire [11: 0] i12;
 wire [15: 0] i16;
 wire [19: 0] i20;
@@ -157,6 +158,8 @@ assign ds_to_es_valid =  ds_valid & ds_ready_go;
 always @(posedge clk) begin
     if (reset)
         ds_valid <= 1'b0;
+    //else if (br_taken)    //////////////
+    //    ds_valid <= 1'b0;
     else if (ds_allowin)
         ds_valid <= fs_to_ds_valid;
     if (fs_to_ds_valid && ds_allowin)
@@ -170,6 +173,7 @@ assign op_19_15 = inst[19:15];
 assign rk = inst[14:10];
 assign rj = inst[ 9: 5];
 assign rd = inst[ 4: 0];
+assign i5  = inst[14:10];
 assign i12 = inst[21:10];
 assign i16 = inst[25:10];
 assign i20 = inst[24: 5];
@@ -242,16 +246,17 @@ assign need_si20   = inst_lu12i_w | inst_pcaddu12i;
 assign need_offs16 = inst_jirl | inst_beq | inst_bne | inst_blt | inst_bge | inst_bltu | inst_bgeu;
 assign need_offs26 = inst_b | inst_bl;
 
-assign imm = need_ui12   ? {20'h0, i12} :
+assign imm = need_ui5    ? {27'h0, i5}:
+             need_ui12   ? {20'h0, i12} :
              need_si12   ? {{20{i12[11]}}, i12} :
-             need_si20   ? {{12{i20[19]}}, i20} :
+             need_si20   ? {i20, 12'b0} :
              need_offs16 ? {{14{i16[15]}}, i16, 2'b00} :
              need_offs26 ? {{ 4{i26[25]}}, i26, 2'b00} :
              32'h00000000;
 /*----------------- Regfile interface-----------------*/
 assign raddr1_op = inst_br | inst_st_w | inst_st_b | inst_st_h;
 assign rf_raddr1 = raddr1_op ? rd : rk;
-assign rf_raddr2 = (inst_lu12i_w|inst_pcaddu12i)?5'h0:rj;
+assign rf_raddr2 = inst_lu12i_w | inst_pcaddu12i ? 5'b0 : rj;
 assign rf_we     = wb_bus[37:37];
 assign rf_waddr  = wb_bus[36:32];
 assign rf_wdata  = wb_bus[31: 0];
@@ -266,9 +271,10 @@ regfile u_regfile(
     .waddr  (rf_waddr ),
     .wdata  (rf_wdata )
 );
-assign src1_is_pc  = 1'b0;
+
+assign src1_is_pc  = inst_bl | inst_jirl ? 1'b1 : 1'b0;
 assign src2_is_imm = inst_slli_w | inst_srli_w | inst_srai_w | inst_slti | inst_sltui | inst_addi_w | inst_andi | inst_ori | inst_xori | inst_ld_b | inst_ld_h | inst_ld_w | inst_st_b | inst_st_h | inst_st_w | inst_ld_bu | inst_ld_hu | inst_lu12i_w | inst_pcaddu12i;
-assign src2_is_4   = 1'b0;
+assign src2_is_4   = inst_bl | inst_jirl ? 1'b1 : 1'b0;
 
 assign alu_op[ 0] = inst_add_w | inst_addi_w | inst_mem | inst_jirl | inst_bl | inst_pcaddu12i;
 assign alu_op[ 1] = inst_sub_w;
@@ -294,7 +300,7 @@ assign mem_e     = inst_mem;
 assign mem_we    = inst_st_b | inst_st_h | inst_st_w;
 
 assign wb_dest   = inst_bl ? 5'h01 : rd;
-assign wb_gr_we  = ~inst_st_w & ~inst_st_b & ~inst_st_h & ~inst_b & ~inst_br;
+assign wb_gr_we  = ~inst_st_w & ~inst_st_b & ~inst_st_h & ~inst_b & ~inst_br & (wb_dest != 5'b0);
 assign wb_src_op = inst_ld_b | inst_ld_h | inst_ld_w | inst_ld_bu | inst_ld_hu;
 /*----------------- Comparison -----------------*/
 assign {sign, result} = {1'b0, rj_value} + {1'b1, ~rk_value} + 33'd1;
@@ -309,7 +315,7 @@ assign br_taken  = ( inst_jirl | inst_b | inst_bl
                  | (inst_bge  & ~rj_lt_rd)
                  | (inst_bltu &  rj_ltu_rd)
                  | (inst_bgeu & ~rj_ltu_rd)
-                 );  
+                 ) ;//&& ds_valid && ds_ready_go;  ///////
 assign br_target = inst_jirl ? rj_value + imm : pc + imm;
 /*----------------- BrBUS to FS -----------------*/
 assign br_bus[32:32] = br_taken;

@@ -115,9 +115,9 @@ end
 /* --------------  ALU interface  -------------- */
 wire [31:0] es_alu_src1   ;
 wire [31:0] es_alu_src2   ;
-wire [31:0] es_alu_result ;
+
 assign es_alu_src1 = es_src1_is_pc  ? es_pc[31:0] : es_rj_value;         
-assign es_alu_src2 = es_src2_is_imm ? es_imm : es_rkd_value;
+assign es_alu_src2 = es_src2_is_4 ? 32'h0004 : es_src2_is_imm ? es_imm : es_rkd_value;
 
 alu u_alu(
     .clk        (clk          ),
@@ -129,6 +129,28 @@ alu u_alu(
     .div_ready_go (alu_ready_go)
     );
 /* --------------  MEM write interface  -------------- */
+
+//assign es_addr00 = data_sram_addr[1:0] == 2'b00;
+//assign es_addr01 = data_sram_addr[1:0] == 2'b01;
+//assign es_addr10 = data_sram_addr[1:0] == 2'b10;
+//assign es_addr11 = data_sram_addr[1:0] == 2'b11;
+//assign data_sram_wstrb_sp= {4{es_op_st_b && es_addr00}} & 4'b0001 |
+//                         {4{es_op_st_b && es_addr01}} & 4'b0010 |
+//                         {4{es_op_st_b && es_addr10}} & 4'b0100 |
+//                         {4{es_op_st_b && es_addr11}} & 4'b1000 |
+//                         {4{es_op_st_h && es_addr00}} & 4'b0011 |
+//                         {4{es_op_st_h && es_addr10}} & 4'b1100 |
+//                         {4{es_op_st_w}}              & 4'b1111;
+
+//assign data_sram_wstrb = es_mem_we ? data_sram_wstrb_sp : 4'h0;
+assign data_sram_wdata = {32{es_op_st_b}} & {4{es_rkd_value[ 7:0]}} |
+                         {32{es_op_st_h}} & {2{es_rkd_value[15:0]}} |
+                         {32{es_op_st_w}} & es_rkd_value[31:0];
+assign data_sram_wr    = es_mem_we;
+
+
+
+
 
 assign data_sram_size  = {2{es_op_st_b || es_op_ld_b || es_op_ld_bu}} & 2'b00 |
                          {2{es_op_st_h || es_op_ld_h || es_op_ld_hu}} & 2'b01 |

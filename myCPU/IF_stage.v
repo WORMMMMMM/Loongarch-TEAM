@@ -66,6 +66,7 @@ assign inst_sram_en    = to_fs_valid && fs_allowin;
 assign inst_sram_we   = 4'h0;
 assign inst_sram_addr  = nextpc;
 assign inst_sram_wdata = 32'b0;
-assign fs_inst         =br_taken?32'h02800000:inst_sram_rdata;//如果是分支指令且确定转移，那么这一条改成nop指令
+
+assign fs_inst         = br_taken ? 32'h02800000 : inst_sram_rdata;
 
 endmodule
