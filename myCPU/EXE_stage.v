@@ -12,6 +12,8 @@ module exe_stage(
     //to ms
     output                         es_to_ms_valid,
     output [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus  ,
+    //forward to ds
+    output [`ES_FORWARD_WD   -1:0] es_forward    ,
     // data sram interface
     output                         data_sram_en   ,
     output [                  3:0] data_sram_we,
@@ -20,16 +22,15 @@ module exe_stage(
     output [                  1:0] data_sram_size ,
     input                          data_sram_addr_ok
 );
-reg         es_valid      ;
-wire        es_ready_go   ;
 
+/*-------------------- Signal interface --------------------*/
 reg  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus_r;
 wire [18:0] es_alu_op     ;
 wire        es_load_op    ;
 wire        es_src1_is_sa ;  
 wire        es_src1_is_pc ;
 wire        es_src2_is_imm; 
-wire        es_src2_is_4  ;//前边也要�?
+wire        es_src2_is_4  ;
 wire        es_gr_we      ;
 wire        es_mem_we     ;
 wire [ 4:0] es_dest       ;
@@ -46,28 +47,8 @@ wire        es_op_st_b    ;
 wire        es_op_st_h    ;
 wire        es_op_st_w    ;
 wire        es_res_from_mem;
-/* --------------  Signals interface  -------------- */
-// assign {es_alu_op      ,  //141:124
-//         es_op_ld_w     ,  //77
-//         es_op_ld_b     ,  //76
-//         es_op_ld_bu    ,  //75
-//         es_op_ld_h     ,  //74
-//         es_op_ld_hu    ,  //73
-//         es_op_st_w     ,  //72
-//         es_op_st_b     ,  //71
-//         es_op_st_h     ,  //70
-//         es_src1_is_pc  ,  //121:121
-//         es_src2_is_imm ,  //120:120
-//         es_src2_is_4  ,  //119:119 modified
-//         es_res_from_mem,  //118:118
-//         es_gr_we       ,  //118:118
-//         es_mem_we      ,  //117:117
-//         es_dest        ,  //116:112
-//         es_imm         ,  //111:96
-//         es_rj_value    ,  //95 :64
-//         es_rkd_value    ,  //63 :32
-//         es_pc             //31 :0
-//        } = ds_to_es_bus_r;//接收到的控制信号
+wire        es_inst_load  ;
+//DS to ES bus
 assign es_pc          = ds_to_es_bus_r[166:135];
 assign es_op_ld_b     = ds_to_es_bus_r[134:134];
 assign es_op_ld_h     = ds_to_es_bus_r[133:133];
@@ -85,28 +66,37 @@ assign es_src2_is_imm = ds_to_es_bus_r[ 29: 29];
 assign es_src2_is_4   = ds_to_es_bus_r[ 28: 28];
 assign es_alu_op      = ds_to_es_bus_r[ 27:  9];
 assign es_mem_en      = ds_to_es_bus_r[  8:  8];
-// assign es_mem_we      = ds_to_es_bus_r[  7:  7];
+assign es_mem_we      = ds_to_es_bus_r[  7:  7];
 assign es_dest        = ds_to_es_bus_r[  6:  2];
 assign es_gr_we       = ds_to_es_bus_r[  1:  1];
 assign es_res_from_mem= ds_to_es_bus_r[  0:  0];
+assign es_inst_load   = es_op_ld_b || es_op_ld_h || es_op_ld_w || es_op_ld_bu || es_op_ld_hu;
+//ES to MS bus
+assign es_to_ms_bus [31:0] = es_pc;
+assign es_to_ms_bus [63:32] = es_alu_result;
+assign es_to_ms_bus [68:64] = es_dest;
+assign es_to_ms_bus [69] = es_gr_we;
+assign es_to_ms_bus [70] = es_res_from_mem;
+assign es_to_ms_bus [71] = es_op_st_h;
+assign es_to_ms_bus [72] = es_op_st_b;
+assign es_to_ms_bus [73] = es_op_st_w;
+assign es_to_ms_bus [74] = es_op_ld_hu;
+assign es_to_ms_bus [75] = es_op_ld_h;
+assign es_to_ms_bus [76] = es_op_ld_bu;
+assign es_to_ms_bus [77] = es_op_ld_b;
+assign es_to_ms_bus [78] = es_op_ld_w;
+assign es_to_ms_bus [79] = es_mem_we;
 
-assign es_to_ms_bus = {
-                       es_mem_we      ,  //79
-                       es_op_ld_w     ,  //78
-                       es_op_ld_b     ,  //77
-                       es_op_ld_bu    ,  //76
-                       es_op_ld_h     ,  //75
-                       es_op_ld_hu    ,  //74
-                       es_op_st_w     ,  //73
-                       es_op_st_b     ,  //72
-                       es_op_st_h     ,  //71
-                       es_res_from_mem,  //70
-                       es_gr_we       ,  //69:69
-                       es_dest        ,  //68:64
-                       es_alu_result  ,  //63:32
-                       es_pc             //31:0
-                      };//发�?�的控制信号
+//forward to DS
+assign es_forward [0] = es_valid;
+assign es_forward [1] = es_gr_we;
+assign es_forward [6:2] = es_dest;
+assign es_forward [38:7] = es_alu_result;
+assign es_forward [70:39] = es_pc;
+assign es_forward [71] = es_inst_load;
 /* --------------  Handshaking  -------------- */
+reg         es_valid      ;
+wire        es_ready_go   ;
 assign es_ready_go    = 1'b1;
 assign es_allowin     = !es_valid || es_ready_go && ms_allowin;
 assign es_to_ms_valid =  es_valid && es_ready_go;
@@ -145,9 +135,11 @@ assign data_sram_size  = {2{es_op_st_b || es_op_ld_b || es_op_ld_bu}} & 2'b00 |
                          {2{es_op_st_w || es_op_ld_w}}                & 2'b10;
 
 
-assign data_sram_en    = 1'b1;
+assign data_sram_en    = es_mem_en;//存储的使能
 assign data_sram_we   = es_mem_we&&es_valid ? 4'hf : 4'h0;
 assign data_sram_addr  = es_alu_result;
-assign data_sram_wdata = es_rkd_value;
+assign data_sram_wdata = {32{es_op_st_b}} & {4{es_rkd_value[ 7:0]}} |
+                         {32{es_op_st_h}} & {2{es_rkd_value[15:0]}} |
+                         {32{es_op_st_w}} & es_rkd_value[31:0];
 
 endmodule

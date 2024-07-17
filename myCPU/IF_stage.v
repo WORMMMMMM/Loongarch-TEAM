@@ -15,7 +15,7 @@ module if_stage(
     output [ 3:0] inst_sram_we  ,
     output [31:0] inst_sram_addr ,
     output [31:0] inst_sram_wdata,
-    input  [31:0] inst_sram_rdata                             //输入和读取是否有问题�??
+    input  [31:0] inst_sram_rdata                             //输入和读取是否有问题�??
 );
 
 reg         fs_valid;
@@ -45,7 +45,7 @@ assign nextpc       = br_taken ? br_target : seq_pc;
 // IF stage
 assign fs_ready_go    = 1'b1;
 assign fs_allowin     = !fs_valid || fs_ready_go && ds_allowin;
-assign fs_to_ds_valid =  fs_valid && fs_ready_go; //有无~br_taken?
+assign fs_to_ds_valid =  fs_valid && fs_ready_go; 
 always @(posedge clk) begin
     if (reset) begin
         fs_valid <= 1'b0;
@@ -66,7 +66,6 @@ assign inst_sram_en    = to_fs_valid && fs_allowin;
 assign inst_sram_we   = 4'h0;
 assign inst_sram_addr  = nextpc;
 assign inst_sram_wdata = 32'b0;
-
-assign fs_inst         = inst_sram_rdata;
+assign fs_inst         =br_taken?32'h02800000:inst_sram_rdata;//如果是分支指令且确定转移，那么这一条改成nop指令
 
 endmodule
