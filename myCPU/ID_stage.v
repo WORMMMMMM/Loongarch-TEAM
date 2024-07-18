@@ -13,13 +13,12 @@ module id_stage(
     output [`DS_TO_ES_BUS_WD-1:0] ds_to_es_bus,
     output [`BR_BUS_WD-1:0] br_bus,
     input  [`WB_BUS_WD-1:0] wb_bus,
-    input  [`ES_FORWARD_WD   -1:0] es_forward,
-    input  [`MS_FORWARD_WD   -1:0] ms_forward,
-    input  [`WS_FORWARD_WD   -1:0] ws_forward,
+    input  [`ES_FORWARD_WD-1:0] es_forward,
+    input  [`MS_FORWARD_WD-1:0] ms_forward,
+    input  [`WS_FORWARD_WD-1:0] ws_forward,
 );
 
 /* handshaking */
-
 reg  [`FS_TO_DS_BUS_WD-1:0] fs_to_ds_bus_r;
 
 /* decode */
@@ -145,6 +144,7 @@ wire rj_lt_rd;
 wire rj_ltu_rd;
 wire br_taken;
 wire [31: 0] br_target;
+
 /*----------------- Handshaking-----------------*/
 wire ds_ready_go;
 reg  ds_valid;
@@ -161,6 +161,7 @@ always @(posedge clk) begin
     if (fs_to_ds_valid && ds_allowin)
         fs_to_ds_bus_r <= fs_to_ds_bus;
 end
+
 /*----------------- Decode-----------------*/
 assign op_31_26 = inst[31:26];
 assign op_25_22 = inst[25:22];
@@ -249,6 +250,7 @@ assign imm = need_ui5    ? {27'h0, i5}:
              need_offs16 ? {{14{i16[15]}}, i16, 2'b00} :
              need_offs26 ? {{ 4{i26[25]}}, i26, 2'b00} :
              32'h00000000;
+
 /*----------------- Regfile interface-----------------*/
 assign raddr1_op = inst_br | inst_st_w | inst_st_b | inst_st_h;
 assign rf_raddr1 = raddr1_op ? rd : rk;
@@ -267,7 +269,6 @@ regfile u_regfile(
     .waddr  (rf_waddr ),
     .wdata  (rf_wdata )
 );
-
 
 assign src1_is_pc  = inst_bl | inst_jirl | inst_pcaddu12i ? 1'b1 : 1'b0;
 assign src2_is_imm = inst_slli_w | inst_srli_w | inst_srai_w | inst_slti | inst_sltui | inst_addi_w | inst_andi | inst_ori | inst_xori | inst_ld_b | inst_ld_h | inst_ld_w | inst_st_b | inst_st_h | inst_st_w | inst_ld_bu | inst_ld_hu | inst_lu12i_w | inst_pcaddu12i;
@@ -299,6 +300,7 @@ assign mem_we    = inst_st_b | inst_st_h | inst_st_w;
 assign wb_dest   = inst_bl ? 5'h01 : rd;
 assign wb_gr_we  = ~inst_st_w & ~inst_st_b & ~inst_st_h & ~inst_b & ~inst_br & (wb_dest != 5'b0);
 assign wb_src_op = inst_ld_b | inst_ld_h | inst_ld_w | inst_ld_bu | inst_ld_hu;
+
 /*----------------- Comparison -----------------*/
 assign {sign, result} = {1'b0, rj_value} + {1'b1, ~rk_value} + 33'd1;
 assign overflow = (rj_value[31] ^ rk_value[31]) & (rj_value[31] ^ result[31]);
@@ -313,9 +315,11 @@ assign br_taken  = ( inst_jirl | inst_b | inst_bl
                   | (inst_bltu &  rj_ltu_rd)
                   | (inst_bgeu & ~rj_ltu_rd) ); // && ds_valid && ds_ready_go;  ///////
 assign br_target = inst_jirl ? rj_value + imm : pc + imm;
+
 /*----------------- BrBUS to FS -----------------*/
 assign br_bus[32:32] = br_taken;
 assign br_bus[31: 0] = br_target;
+
 /*----------------- Signal interface -----------------*/
 //DS to ES bus
 assign ds_to_es_bus[166:135] = pc;
@@ -342,21 +346,22 @@ assign ds_to_es_bus[  0:  0] = wb_src_op;
 //FS to DS bus
 assign inst = fs_to_ds_bus_r[63:32];
 assign pc   = fs_to_ds_bus_r[31: 0];
+
 /*-----------------Hazard detection-----------------*/
-//signals from ES
+// signals from ES
 wire ex_valid;
 wire es_gr_we;
 wire [ 4: 0] es_dest;
 wire [31: 0] es_alu_result;
 wire [31: 0] es_pc;
 wire es_inst_load;
-assign ex_valid     = es_forward[0];
-assign es_gr_we     = es_forward[1];
-assign es_dest      = es_forward[6:2];
-assign es_alu_result= es_forward[38:7];
-assign es_pc        = es_forward[70:39];
-assign es_inst_load = es_forward[71];
-//signals from MS
+assign ex_valid      = es_forward[0];
+assign es_gr_we      = es_forward[1];
+assign es_dest       = es_forward[6:2];
+assign es_alu_result = es_forward[38:7];
+assign es_pc         = es_forward[70:39];
+assign es_inst_load  = es_forward[71];
+// signals from MS
 wire ms_valid;
 wire ms_gr_we;
 wire [ 4: 0] ms_dest;
@@ -371,7 +376,7 @@ assign ms_final_result = ms_forward[38:7];
 assign ms_res_from_mem = ms_forward[39];
 assign ms_pc           = ms_forward[71:40];
 
-//signals from WS
+// signals from WS
 wire ws_valid;
 wire ws_gr_we;
 wire [ 4: 0] ws_dest;
@@ -384,7 +389,7 @@ assign ws_dest         = ws_forward[6:2];
 assign ws_final_result = ws_forward[38:7];
 assign ws_pc           = ws_forward[70:39];
 
-//RAW hazard
+// RAW hazard
 wire raw;
 wire raw_ed_1;//ES to DS 的数据冒险
 wire raw_ed_2;
@@ -392,13 +397,13 @@ wire raw_md_1;
 wire raw_md_2;
 wire raw_wd_1;
 wire raw_wd_2;
-assign no_src1 = inst_b || inst_bl || inst_pcaddu12i || 
-                 inst_csrrd || inst_csrwr || inst_rdcntvl_w || inst_rdcntvh_w || inst_rdcntid;
+assign no_src1 = inst_b | inst_bl | inst_pcaddu12i | 
+                 inst_csrrd | inst_csrwr | inst_rdcntvl_w | inst_rdcntvh_w | inst_rdcntid;
 
-assign no_src2 = inst_b || inst_bl || inst_jirl || inst_addi_w ||
-                 inst_ld_w || inst_ld_b || inst_ld_bu || inst_ld_h || inst_ld_hu ||
-                 inst_slli_w || inst_srli_w || inst_srai_w || inst_slti || inst_sltui ||
-                 inst_andi || inst_ori || inst_xori || inst_pcaddu12i || inst_csrrd || inst_rdcntvh_w || inst_rdcntid;
+assign no_src2 = inst_b | inst_bl | inst_jirl | inst_addi_w |
+                 inst_ld_w | inst_ld_b | inst_ld_bu | inst_ld_h | inst_ld_hu |
+                 inst_slli_w | inst_srli_w | inst_srai_w | inst_slti | inst_sltui |
+                 inst_andi | inst_ori | inst_xori | inst_pcaddu12i | inst_csrrd | inst_rdcntvh_w | inst_rdcntid;
 
 assign src1 = no_src1 ? 5'd0 : rf_raddr1;
 assign src2 = no_src2 ? 5'd0 : rf_raddr2;
@@ -410,7 +415,7 @@ assign raw_md_2 = ms_valid && (src2 == ms_dest) && (src2!=5'h0)&&(ms_dest!=5'h0)
 assign raw_wd_1 = ws_valid && (src1 == ws_dest) && (src1!=5'h0)&&(ws_dest!=5'h0) && ws_gr_we;
 assign raw_wd_2 = ws_valid && (src2 == ws_dest) && (src2!=5'h0)&&(ws_dest!=5'h0) && ws_gr_we;
 
-assign raw=raw_ed_1 | raw_ed_2 | raw_md_1 | raw_md_2 | raw_wd_1 | raw_wd_2;
+assign raw = raw_ed_1 | raw_ed_2 | raw_md_1 | raw_md_2 | raw_wd_1 | raw_wd_2;
 
 assign rj_value= raw_ed_1 ? es_alu_result :
                  raw_md_1 ? ms_final_result :
