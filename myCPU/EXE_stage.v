@@ -55,6 +55,8 @@ wire        es_op_st_w    ;
 wire        es_res_from_mem;
 wire        es_inst_load  ;
 wire [31:0] es_alu_result ;
+//wire [ 3:0] es_mul_div_op_r;
+//wire        es_mul_div_sign_r;
 //DS to ES bus
 assign es_mul_div_sign= ds_to_es_bus_r[171:171];
 assign es_mul_div_op  = ds_to_es_bus_r[170:167];
@@ -173,7 +175,7 @@ assign data_sram_size  = {2{es_op_st_b || es_op_ld_b || es_op_ld_bu}} & 2'b00 |
                          {2{es_op_st_w || es_op_ld_w}}                & 2'b10;
 
 
-assign data_sram_en    = es_mem_en;//存储的使�?
+assign data_sram_en    = es_mem_en;//存储的使�??
 assign data_sram_we   = es_mem_we&&es_valid ? 4'hf : 4'h0;
 assign data_sram_addr  = es_alu_result;
 assign data_sram_wdata = {32{es_op_st_b}} & {4{es_rkd_value[ 7:0]}} |
