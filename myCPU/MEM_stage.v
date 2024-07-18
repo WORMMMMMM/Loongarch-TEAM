@@ -14,6 +14,10 @@ module mem_stage(
     output [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus  ,
     //forward to ds
     output [`MS_FORWARD_WD   -1:0] ms_forward    ,
+    //div    
+    input  [31:0]                  div_result    ,
+    input  [31:0]                  mod_result    ,
+    input  [63:0]                  mul_result    ,
     //from data-sram
     input  [31                 :0] data_sram_rdata
 );
@@ -26,6 +30,9 @@ wire        ms_gr_we;
 wire [ 4:0] ms_dest;
 wire [31:0] ms_alu_result;
 wire [31:0] ms_pc;
+wire [ 1:0] ms_addr_lowbits;
+wire        ms_mul_div_sign;
+wire [ 3:0] ms_mul_div_op;
 
 assign ms_pc = es_to_ms_bus_r[31:0];
 assign ms_alu_result = es_to_ms_bus_r[63:32];
@@ -41,6 +48,9 @@ assign ms_op_ld_bu = es_to_ms_bus_r[76];
 assign ms_op_ld_b = es_to_ms_bus_r[77];
 assign ms_op_ld_w = es_to_ms_bus_r[78];
 assign ms_mem_we = es_to_ms_bus_r[79];
+assign ms_addr_lowbits = es_to_ms_bus_r[81:80];
+assign ms_mul_div_sign = es_to_ms_bus_r[82];
+assign ms_mul_div_op = es_to_ms_bus_r[86:83];
 
 //MS to WS bus
 wire [31:0] mem_result;
@@ -51,6 +61,8 @@ assign ms_to_ws_bus [63:32] = ms_final_result;
 assign ms_to_ws_bus [68:64] = ms_dest;
 assign ms_to_ws_bus [69] = ms_gr_we;
 
+reg         ms_valid;
+wire        ms_ready_go;
 //forward to DS
 assign ms_forward [0] = ms_valid;
 assign ms_forward [1] = ms_gr_we;
@@ -59,8 +71,7 @@ assign ms_forward [38:7] = ms_final_result;
 assign ms_forward [39] = ms_res_from_mem;
 assign ms_forward [71:40] = ms_pc;
 /*----------------- Handshaking-----------------*/                      
-reg         ms_valid;
-wire        ms_ready_go;
+
 assign ms_ready_go    = 1'b1;
 assign ms_allowin     = !ms_valid || ms_ready_go && ws_allowin;
 assign ms_to_ws_valid = ms_valid && ms_ready_go;
@@ -130,7 +141,10 @@ assign mem_result = {32{ms_op_ld_w}}  & final_data_sram_rdata                   
                     {32{ms_op_ld_hu}} & {16'b0, mem_halfword_data};
 
 
-assign ms_final_result = ms_res_from_mem ? mem_result
-                                         : ms_alu_result;
-
+assign ms_final_result = ({32{ms_res_from_mem }} & mem_result       )  |
+                         ({32{ms_mul_div_op[0]}} & mul_result[31:0] )  |
+                         ({32{ms_mul_div_op[1]}} & mul_result[63:32])  |
+                         ({32{ms_mul_div_op[2]}} & div_result       )  |
+                         ({32{ms_mul_div_op[3]}} & mod_result       )  |
+                         ({32{!ms_mul_div_sign && !ms_res_from_mem}} & ms_alu_result);
 endmodule

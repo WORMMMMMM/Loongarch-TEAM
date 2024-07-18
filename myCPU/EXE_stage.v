@@ -14,6 +14,12 @@ module exe_stage(
     output [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus  ,
     //forward to ds
     output [`ES_FORWARD_WD   -1:0] es_forward    ,
+    //mul div
+    output                         es_div_enable   ,
+    output                         es_mul_div_sign ,
+    output [31:0]                  es_rj_value     ,
+    output [31:0]                  es_rkd_value    ,
+    input                          div_complete    ,
     // data sram interface
     output                         data_sram_en   ,
     output [                  3:0] data_sram_we,
@@ -26,6 +32,7 @@ module exe_stage(
 /*-------------------- Signal interface --------------------*/
 reg  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus_r;
 wire [18:0] es_alu_op     ;
+wire [ 3:0] es_mul_div_op ;
 wire        es_load_op    ;
 wire        es_src1_is_sa ;  
 wire        es_src1_is_pc ;
@@ -35,9 +42,8 @@ wire        es_gr_we      ;
 wire        es_mem_we     ;
 wire [ 4:0] es_dest       ;
 wire [31:0] es_imm        ;
-wire [31:0] es_rj_value   ;
-wire [31:0] es_rkd_value   ;
 wire [31:0] es_pc         ;
+wire [ 3:0] es_mul_div_op ; 
 wire        es_op_ld_w    ;
 wire        es_op_ld_b    ;
 wire        es_op_ld_bu   ;
@@ -48,7 +54,10 @@ wire        es_op_st_h    ;
 wire        es_op_st_w    ;
 wire        es_res_from_mem;
 wire        es_inst_load  ;
+wire [31:0] es_alu_result ;
 //DS to ES bus
+assign es_mul_div_sign= ds_to_es_bus_r[171:171];
+assign es_mul_div_op  = ds_to_es_bus_r[170:167];
 assign es_pc          = ds_to_es_bus_r[166:135];
 assign es_op_ld_b     = ds_to_es_bus_r[134:134];
 assign es_op_ld_h     = ds_to_es_bus_r[133:133];
@@ -86,6 +95,11 @@ assign es_to_ms_bus [76] = es_op_ld_bu;
 assign es_to_ms_bus [77] = es_op_ld_b;
 assign es_to_ms_bus [78] = es_op_ld_w;
 assign es_to_ms_bus [79] = es_mem_we;
+assign es_to_ms_bus [81:80] = data_sram_addr[1:0];
+assign es_to_ms_bus [82] = es_mul_div_sign;
+assign es_to_ms_bus [86:83] = es_mul_div_op;
+reg         es_valid      ;
+wire        es_ready_go   ;
 
 //forward to DS
 assign es_forward [0] = es_valid;
@@ -95,9 +109,8 @@ assign es_forward [38:7] = es_alu_result;
 assign es_forward [70:39] = es_pc;
 assign es_forward [71] = es_inst_load;
 /* --------------  Handshaking  -------------- */
-reg         es_valid      ;
-wire        es_ready_go   ;
-assign es_ready_go    = 1'b1;
+
+assign es_ready_go    = !es_div_stall;
 assign es_allowin     = !es_valid || es_ready_go && ms_allowin;
 assign es_to_ms_valid =  es_valid && es_ready_go;
 always @(posedge clk) begin
@@ -115,19 +128,22 @@ end
 /* --------------  ALU interface  -------------- */
 wire [31:0] es_alu_src1   ;
 wire [31:0] es_alu_src2   ;
-
+wire        es_div_enable ;
+wire        es_mul_enable ;
+wire        es_div_stall  ;
 assign es_alu_src1 = es_src1_is_pc  ? es_pc[31:0] : es_rj_value;         
 assign es_alu_src2 = es_src2_is_4 ? 32'h0004 : es_src2_is_imm ? es_imm : es_rkd_value;
+assign es_div_enable = (es_mul_div_op[2] | es_mul_div_op[3]) & es_valid;
+assign es_mul_enable = (es_mul_div_op[0] | es_mul_div_op[1]) & es_valid;
+assign es_div_stall  = es_div_enable & ~div_complete;
 
 alu u_alu(
-    .clk        (clk          ),
-    .reset      (reset        ),
     .alu_op     (es_alu_op    ),
-    .alu_src1   (es_alu_src1  ),
+    .alu_src1   (es_alu_src1  ),  //bug3 es_alu_src2
     .alu_src2   (es_alu_src2  ),
-    .alu_result (es_alu_result),
-    .div_ready_go (alu_ready_go)
+    .alu_result (es_alu_result)
     );
+
 /* --------------  MEM write interface  -------------- */
 
 //assign es_addr00 = data_sram_addr[1:0] == 2'b00;
@@ -157,7 +173,7 @@ assign data_sram_size  = {2{es_op_st_b || es_op_ld_b || es_op_ld_bu}} & 2'b00 |
                          {2{es_op_st_w || es_op_ld_w}}                & 2'b10;
 
 
-assign data_sram_en    = es_mem_en;//存储的使能
+assign data_sram_en    = es_mem_en;//存储的使�?
 assign data_sram_we   = es_mem_we&&es_valid ? 4'hf : 4'h0;
 assign data_sram_addr  = es_alu_result;
 assign data_sram_wdata = {32{es_op_st_b}} & {4{es_rkd_value[ 7:0]}} |
