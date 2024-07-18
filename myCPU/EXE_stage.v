@@ -50,6 +50,7 @@ wire        es_res_from_mem;
 
 /* --------------  Signals interface  -------------- */
 wire        es_inst_load  ;
+wire [31:0] es_alu_result ;
 //DS to ES bus
 assign es_pc          = ds_to_es_bus_r[166:135];
 assign es_op_ld_b     = ds_to_es_bus_r[134:134];
@@ -88,6 +89,10 @@ assign es_to_ms_bus [76] = es_op_ld_bu;
 assign es_to_ms_bus [77] = es_op_ld_b;
 assign es_to_ms_bus [78] = es_op_ld_w;
 assign es_to_ms_bus [79] = es_mem_we;
+assign es_to_ms_bus [81:80] = data_sram_addr[1:0];
+
+reg         es_valid      ;
+wire        es_ready_go   ;
 
 //forward to DS
 assign es_forward [0] = es_valid;
@@ -97,8 +102,7 @@ assign es_forward [38:7] = es_alu_result;
 assign es_forward [70:39] = es_pc;
 assign es_forward [71] = es_inst_load;
 /* --------------  Handshaking  -------------- */
-reg         es_valid      ;
-wire        es_ready_go   ;
+
 assign es_ready_go    = 1'b1;
 assign es_allowin     = !es_valid || es_ready_go && ms_allowin;
 assign es_to_ms_valid =  es_valid && es_ready_go;

@@ -43,6 +43,9 @@ wire [`ES_TO_MS_BUS_WD-1:0] es_to_ms_bus;
 wire [`MS_TO_WS_BUS_WD-1:0] ms_to_ws_bus;
 wire [`BR_BUS_WD-1:0] br_bus;
 wire [`WB_BUS_WD-1:0] wb_bus;
+wire [`ES_FORWARD_WD   -1:0] es_forward;
+wire [`MS_FORWARD_WD   -1:0] ms_forward;
+wire [`WS_FORWARD_WD   -1:0] ws_forward;
 
 if_stage if_stage(
     .clk            (clk            ),
@@ -83,7 +86,10 @@ id_stage id_stage(
     .ds_to_es_bus   (ds_to_es_bus   ),
 
     .br_bus         (br_bus         ),
-    .wb_bus         (wb_bus         )
+    .wb_bus         (wb_bus         ),
+    .es_forward     (es_forward     ),
+    .ms_forward     (ms_forward     ),
+    .ws_forward     (ws_forward     )
 );
 
 exe_stage exe_stage(
@@ -101,6 +107,8 @@ exe_stage exe_stage(
     // to ms
     .es_to_ms_valid (es_to_ms_valid ),
     .es_to_ms_bus   (es_to_ms_bus   ),
+    
+    .es_forward     (es_forward     ),
 
     // data sram interface
     .data_sram_en   (data_sram_en   ),
@@ -124,6 +132,8 @@ mem_stage mem_stage(
     // to ws
     .ms_to_ws_valid (ms_to_ws_valid ),
     .ms_to_ws_bus   (ms_to_ws_bus   ),
+    
+    .ms_forward     (ms_forward     ),
 
     // from data-sram
     .data_sram_rdata(data_sram_rdata)
@@ -141,6 +151,8 @@ wb_stage wb_stage(
     .ms_to_ws_bus   (ms_to_ws_bus   ),
 
     .ws_to_rf_bus   (wb_bus         ),
+    
+    .ws_forward     (ws_forward     ),
 
     // trace debug interface
     .debug_wb_pc      (debug_wb_pc      ),
