@@ -43,6 +43,15 @@ wire [`ES_TO_MS_BUS_WD-1:0] es_to_ms_bus;
 wire [`MS_TO_WS_BUS_WD-1:0] ms_to_ws_bus;
 wire [`BR_BUS_WD-1:0] br_bus;
 wire [`WB_BUS_WD-1:0] wb_bus;
+wire es_div_enable;
+wire es_mul_div_sign;
+wire [31:0] es_rj_value;
+wire [31:0] es_rk_value;
+wire div_complete;
+wire [31:0] div_result;
+wire [31:0] mod_result;
+wire [31:0] mul_result;
+
 
 if_stage if_stage(
     .clk            (clk            ),
@@ -81,7 +90,7 @@ id_stage id_stage(
     // to es
     .ds_to_es_valid (ds_to_es_valid ),
     .ds_to_es_bus   (ds_to_es_bus   ),
-
+    
     .br_bus         (br_bus         ),
     .wb_bus         (wb_bus         )
 );
@@ -107,6 +116,26 @@ exe_stage exe_stage(
     .data_sram_we  (data_sram_we  ),
     .data_sram_addr (data_sram_addr ),
     .data_sram_wdata(data_sram_wdata)
+);
+div divider(
+    .div_clk        (clk),
+    .reset          (reset),
+    .div            (es_div_enable),
+    .div_signed     (es_mul_div_sign),
+    .x              (es_rj_value),
+    .y              (es_rk_value),
+    .complete       (div_complete),
+    .s              (div_result),
+    .r              (mod_result)
+);
+
+mul multiplier(
+    .mul_clk        (clk),
+    .reset          (reset),
+    .mul_signed     (es_mul_div_sign),
+    .x              (es_rj_value),
+    .y              (es_rk_value),
+    .result         (mul_result)
 );
 
 mem_stage mem_stage(
