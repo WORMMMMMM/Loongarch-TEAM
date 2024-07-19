@@ -303,7 +303,7 @@ assign mul_div_op[ 0] = inst_mul_w;
 assign mul_div_op[ 1] = inst_mulh_w | inst_mulh_wu;
 assign mul_div_op[ 2] = inst_div_w  | inst_div_wu;
 assign mul_div_op[ 3] = inst_mod_w  | inst_mod_wu;
-assign mul_div_sign   = inst_mul_w | inst_mulh_w |inst_mulh_wu |inst_div_w | inst_div_wu | inst_mod_w | inst_mod_wu;
+assign mul_div_sign   = inst_mul_w | inst_mulh_w |inst_div_w | inst_mod_w;
 
 assign mem_e     = inst_mem;
 assign mem_we    = inst_st_b | inst_st_h | inst_st_w;
@@ -401,7 +401,7 @@ assign ws_pc           = ws_forward[70:39];
 
 //RAW hazard
 wire raw;
-wire raw_ed_1;//ES to DS 的数据冒�?
+wire raw_ed_1;//ES to DS 的数据冒�??
 wire raw_ed_2;
 wire raw_md_1;
 wire raw_md_2;
