@@ -1,11 +1,14 @@
 
 `include "myCPU.h"
 
-module mycpu_top(
+module cpu_core(
     input         clk,
     input         resetn,
 
     // inst sram interface
+    output        inst_sram_req,
+    output [ 3:0] inst_sram_wstrb,
+    output [ 1:0] inst_sram_size,
     output        inst_sram_en,
     output [ 3:0] inst_sram_we,
     output [31:0] inst_sram_addr,
@@ -13,11 +16,14 @@ module mycpu_top(
     input  [31:0] inst_sram_rdata,
 
     // data sram interface
+    output        data_sram_req,
     output        data_sram_en,
     output [ 3:0] data_sram_we,
+    output [ 1:0] data_sram_size,
     output [31:0] data_sram_addr,
     output [31:0] data_sram_wdata,
     input  [31:0] data_sram_rdata,
+    output [ 3:0] data_sram_wstrb,
     
     // trace debug interface
     output [31:0] debug_wb_pc,
@@ -49,11 +55,12 @@ wire [`WS_FORWARD_WD   -1:0] ws_forward;
 wire es_div_enable;
 wire es_mul_div_sign;
 wire [31:0] es_rj_value;
-wire [31:0] es_rk_value;
+wire [31:0] es_rkd_value;
 wire div_complete;
 wire [31:0] div_result;
 wire [31:0] mod_result;
-wire [31:0] mul_result;
+wire [63:0] mul_result;
+
 
 if_stage if_stage(
     .clk            (clk            ),
@@ -70,6 +77,9 @@ if_stage if_stage(
     .fs_to_ds_bus   (fs_to_ds_bus   ),
 
     // inst sram interface
+    .inst_sram_req  (inst_sram_req  ),
+    .inst_sram_wstrb(inst_sram_wstrb),
+    .inst_sram_size (inst_sram_size),
     .inst_sram_en   (inst_sram_en   ),
     .inst_sram_we  (inst_sram_we  ),
     .inst_sram_addr (inst_sram_addr ),
@@ -123,7 +133,11 @@ exe_stage exe_stage(
     .es_rj_value    (es_rj_value    ),
     .es_rkd_value   (es_rkd_value   ),
     .div_complete   (div_complete   ),
+    
+    .data_sram_wstrb(data_sram_wstrb),
     // data sram interface
+    .data_sram_req  (data_sram_req  ),
+    .data_sram_size (data_sram_size),
     .data_sram_en   (data_sram_en   ),
     .data_sram_we   (data_sram_we  ),
     .data_sram_addr (data_sram_addr ),
@@ -135,7 +149,7 @@ div divider(
     .div            (es_div_enable  ),
     .div_signed     (es_mul_div_sign),
     .x              (es_rj_value    ),
-    .y              (es_rk_value    ),
+    .y              (es_rkd_value    ),
     .complete       (div_complete   ),
     .s              (div_result     ),
     .r              (mod_result     )
@@ -146,7 +160,7 @@ mul multiplier(
     .reset          (reset),
     .mul_signed     (es_mul_div_sign),
     .x              (es_rj_value),
-    .y              (es_rk_value),
+    .y              (es_rkd_value),
     .result         (mul_result)
 );
 
