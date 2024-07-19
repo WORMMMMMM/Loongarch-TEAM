@@ -14,9 +14,13 @@ module mem_stage(
     output [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus  ,
     // forward to ds
     output [`MS_FORWARD_WD   -1:0] ms_forward    ,
-    // from data-sram
-    input  [31                 :0] data_sram_rdata,
-
+    //div    
+    input  [31:0]                  div_result    ,
+    input  [31:0]                  mod_result    ,
+    input  [63:0]                  mul_result    ,
+    //from data-sram
+    input  [31                 :0] data_sram_rdata
+    
     input  excp_flush,
     input  ertn_flush
 );
@@ -30,6 +34,8 @@ wire [ 4:0] ms_dest;
 wire [31:0] ms_alu_result;
 wire [31:0] ms_pc;
 wire [ 1:0] ms_addr_lowbits;
+wire        ms_mul_div_sign;
+wire [ 3:0] ms_mul_div_op;
 
 assign ms_pc = es_to_ms_bus_r[31:0];
 assign ms_alu_result = es_to_ms_bus_r[63:32];
@@ -46,6 +52,8 @@ assign ms_op_ld_b = es_to_ms_bus_r[77];
 assign ms_op_ld_w = es_to_ms_bus_r[78];
 assign ms_mem_we = es_to_ms_bus_r[79];
 assign ms_addr_lowbits = es_to_ms_bus_r[81:80];
+assign ms_mul_div_sign = es_to_ms_bus_r[82];
+assign ms_mul_div_op = es_to_ms_bus_r[86:83];
 
 //MS to WS bus
 wire [31:0] mem_result;
@@ -133,9 +141,6 @@ assign mem_result = {32{ms_op_ld_w}}  & final_data_sram_rdata                   
                     {32{ms_op_ld_h}}  & {{16{mem_halfword_data[15]}}, mem_halfword_data}|
                     {32{ms_op_ld_hu}} & {16'b0, mem_halfword_data};
 
-assign ms_final_result = ms_res_from_mem ? mem_result
-                                         : ms_alu_result;
-
 
 /* exception */
 wire flush;
@@ -154,5 +159,12 @@ assign ms_excp_num = es_excp_num;
 
 assign ms_to_ws_bus[70:70] = ms_excp;
 assign ms_to_ws_bus[86:71] = ms_excp_num;
+
+assign ms_final_result = ({32{ms_res_from_mem }} & mem_result       )  |
+                         ({32{ms_mul_div_op[0]}} & mul_result[31:0] )  |
+                         ({32{ms_mul_div_op[1]}} & mul_result[63:32])  |
+                         ({32{ms_mul_div_op[2]}} & div_result       )  |
+                         ({32{ms_mul_div_op[3]}} & mod_result       )  |
+                         ({32{!ms_mul_div_sign && !ms_res_from_mem}} & ms_alu_result);
 
 endmodule

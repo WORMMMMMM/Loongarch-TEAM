@@ -11,17 +11,19 @@ module if_stage(
     output [`FS_TO_DS_BUS_WD-1:0] fs_to_ds_bus,
     input  [`BR_BUS_WD-1:0] br_bus,
     input  [`EX_BUS_WD-1:0] ex_bus,
-    // inst sram interface
-    output        inst_sram_en,
-    output [ 3:0] inst_sram_we,
-    output [31:0] inst_sram_addr,
-    output [31:0] inst_sram_wdata,
-    input  [31:0] inst_sram_rdata,
-
     input  excp_flush,
     input  ertn_flush,
     input  [31:0] era,
-    input  [31:0] eentry
+    input  [31:0] eentry,
+    // inst sram interface
+    output        inst_sram_req  ,
+    output [ 3:0] inst_sram_wstrb,
+    output [ 1:0] inst_sram_size,
+    output        inst_sram_en   ,
+    output [ 3:0] inst_sram_we  ,
+    output [31:0] inst_sram_addr ,
+    output [31:0] inst_sram_wdata,
+    input  [31:0] inst_sram_rdata
 );
 
 wire br_taken;
@@ -48,6 +50,7 @@ wire [15: 0] pfs_excp_num;
 wire fs_excp;
 wire [15: 0] fs_excp_num;
 
+assign inst_sram_req   = fs_allowin; //req
 
 // pre-IF stage
 assign {br_taken_r, br_target} = br_bus;
@@ -96,10 +99,13 @@ always @(posedge clk) begin
     end
 end
 
+assign inst_sram_size  = 2'b10;
 assign inst_sram_en    = to_fs_valid && fs_allowin;
 assign inst_sram_we    = 4'h0;
 assign inst_sram_addr  = nextpc;
 assign inst_sram_wdata = 32'b0;
+
+assign inst_sram_wstrb = 4'b0;
 
 assign fs_inst         = br_taken ? 32'h02800000 : inst_sram_rdata;
 

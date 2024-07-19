@@ -56,6 +56,7 @@ wire inst_slt;
 wire inst_sltu;
 wire inst_nor;
 wire inst_and;
+wire inst_andn;
 wire inst_or;
 wire inst_xor;
 wire inst_sll_w;
@@ -77,6 +78,7 @@ wire inst_addi_w;
 wire inst_andi;
 wire inst_ori;
 wire inst_xori;
+wire inst_orn;
 wire inst_ld_b;
 wire inst_ld_h;
 wire inst_ld_w;
@@ -128,7 +130,7 @@ wire [31: 0] rf_rdata2;
 wire rf_we;
 wire [ 4: 0] rf_waddr;
 wire [31: 0] rf_wdata;
-wire [31: 0] rk_value;
+wire [31: 0] rkd_value;
 wire [31: 0] rj_value;
 
 /* alu */
@@ -136,7 +138,8 @@ wire src1_is_pc;
 wire src2_is_imm;
 wire src2_is_4;
 wire [18: 0] alu_op;
-
+wire [ 3: 0] mul_div_op;
+wire mul_div_sign;
 /* mem */
 wire mem_en;
 wire mem_we;
@@ -248,6 +251,8 @@ assign inst_bltu      = op_31_26_d[6'h1a];
 assign inst_bgeu      = op_31_26_d[6'h1b];
 assign inst_lu12i_w   = op_31_26_d[6'h05] & ~inst[25];
 assign inst_pcaddu12i = op_31_26_d[6'h07] & ~inst[25];
+assign inst_andn      = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h0d];
+assign inst_orn       = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h1] & op_19_15_d[5'h0c];
 
 assign inst_mem       = inst_ld_b | inst_ld_h | inst_ld_w | inst_st_b | inst_st_h | inst_st_w | inst_ld_bu | inst_ld_hu;
 assign inst_br        = inst_beq | inst_bne | inst_blt | inst_bge | inst_bltu | inst_bgeu;
@@ -313,13 +318,15 @@ assign alu_op[ 8] = inst_slli_w | inst_sll_w;
 assign alu_op[ 9] = inst_srli_w | inst_srl_w;
 assign alu_op[10] = inst_srai_w | inst_sra_w;
 assign alu_op[11] = inst_lu12i_w;
-assign alu_op[12] = inst_mul_w;
-assign alu_op[13] = inst_mulh_w;
-assign alu_op[14] = inst_mulh_wu;
-assign alu_op[15] = inst_div_w;
-assign alu_op[16] = inst_div_wu;
-assign alu_op[17] = inst_mod_w;
-assign alu_op[18] = inst_mod_wu;
+assign alu_op[12] = inst_andn;
+assign alu_op[13] = inst_orn;
+
+//div and mul
+assign mul_div_op[ 0] = inst_mul_w;
+assign mul_div_op[ 1] = inst_mulh_w | inst_mulh_wu;
+assign mul_div_op[ 2] = inst_div_w  | inst_div_wu;
+assign mul_div_op[ 3] = inst_mod_w  | inst_mod_wu;
+assign mul_div_sign   = inst_mul_w | inst_mulh_w | inst_div_w | inst_mod_w;
 
 assign mem_en    = inst_mem;
 assign mem_we    = inst_st_b | inst_st_h | inst_st_w;
@@ -345,6 +352,8 @@ assign br_target = inst_jirl ? rj_value + imm : pc + imm;
 assign br_bus[32:32] = br_taken;
 assign br_bus[31: 0] = br_target;
 
+/*----------------- Signal interface -----------------*/
+// DS to ES bus
 assign ds_to_es_bus[ 31:  0] = pc;
 assign ds_to_es_bus[ 32: 32] = inst_ld_b;
 assign ds_to_es_bus[ 33: 33] = inst_ld_h;
@@ -366,17 +375,18 @@ assign ds_to_es_bus[159:159] = mem_we;
 assign ds_to_es_bus[164:160] = dest;
 assign ds_to_es_bus[165:165] = gr_we;
 assign ds_to_es_bus[166:166] = res_from_mem;
+assign ds_to_es_bus[170:167] = mul_div_op;
+assign ds_to_es_bus[171:171] = mul_div_sign;
 
-
-/* hazard detection */
-// signals from ES
-wire ex_valid;
+/*-----------------Hazard detection-----------------*/
+//signals from ES
+wire es_valid;
 wire es_gr_we;
 wire [ 4: 0] es_dest;
 wire [31: 0] es_alu_result;
 wire [31: 0] es_pc;
 wire es_inst_load;
-assign ex_valid      = es_forward[0];
+assign es_valid      = es_forward[0];
 assign es_gr_we      = es_forward[1];
 assign es_dest       = es_forward[6:2];
 assign es_alu_result = es_forward[38:7];
@@ -420,7 +430,7 @@ wire raw_wd_2;
 
 wire ds_ready_go;
 wire ds_ready_go_r;
-assign ds_ready_go_r = ~(es_valid & es_inst_load & (raw_ed_1 | raw_ed_2));//如果发生load-use冒险，则ID停一个阶段�?
+assign ds_ready_go_r = ~(es_valid & es_inst_load & (raw_ed_1 | raw_ed_2));
 assign ds_ready_go   = (ds_ready_go_r === 1'bx) ? 1'b1 : ds_ready_go_r;
 
 assign no_src1 = inst_b | inst_bl | inst_pcaddu12i | inst_rdcntvl_w | inst_rdcntvh_w | inst_rdcntid;
@@ -461,7 +471,7 @@ assign raw = raw_ed_1 | raw_ed_2 | raw_md_1 | raw_md_2 | raw_wd_1 | raw_wd_2;
 assign rj_value= raw_ed_1 ? es_alu_result :
                  raw_md_1 ? ms_final_result :
                  raw_wd_1 ? ws_final_result : rf_rdata2;
-assign rk_value= raw_ed_2 ? es_alu_result :  
+assign rkd_value= raw_ed_2 ? es_alu_result :  
                  raw_md_2 ? ms_final_result :
                  raw_wd_2 ? ws_final_result : rf_rdata1;
 
@@ -470,8 +480,8 @@ assign flush = excp_flush | ertn_flush;
 assign excp_sys = inst_syscall;
 assign excp_brk = inst_break;
 assign excp_ine = ~inst_add_w & ~inst_sub_w & ~inst_slt & ~inst_sltu
-              & ~inst_nor & ~inst_and & ~inst_or & ~inst_xor
-              & ~inst_sll_w & ~inst_srl_w & ~inst_sra_w
+                & ~inst_nor & ~inst_and & ~inst_or & ~inst_xor
+                & ~inst_sll_w & ~inst_srl_w & ~inst_sra_w
               & ~inst_mul_w & ~inst_mulh_w & ~inst_mulh_wu & ~inst_div_w & ~inst_mod_w & ~inst_div_wu & ~inst_mod_wu
               & ~inst_slli_w & ~inst_srli_w & ~inst_srai_w & ~inst_slti & ~inst_sltui & ~inst_addi_w & ~inst_andi & ~inst_ori & ~inst_xori
               & ~inst_ld_b & ~inst_ld_h & ~inst_ld_w & ~inst_st_b & ~inst_st_h & ~inst_st_w & ~inst_ld_bu & ~inst_ld_hu
@@ -484,7 +494,7 @@ assign fs_excp_num = fs_to_ds_bus_r[80:65];
 assign ds_excp     = fs_excp | excp_sys | excp_brk | excp_ine;
 assign ds_excp_num = fs_excp_num | {5'b0, excp_sys, excp_brk, excp_ine, 8'b0};
 
-assign ds_to_es_bus[167:167] = ds_excp;
-assign ds_to_es_bus[183:168] = ds_excp_num;
+assign ds_to_es_bus[172:172] = ds_excp;
+assign ds_to_es_bus[188:173] = ds_excp_num;
 
 endmodule
