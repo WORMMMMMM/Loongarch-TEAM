@@ -3,16 +3,16 @@
 module mem_stage(
     input                          clk           ,
     input                          reset         ,
-    //allowin
+    // allowin
     input                          ws_allowin    ,
     output                         ms_allowin    ,
-    //from es
+    // from es
     input                          es_to_ms_valid,
     input  [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus  ,
-    //to ws
+    // to ws
     output                         ms_to_ws_valid,
     output [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus  ,
-    //forward to ds
+    // forward to ds
     output [`MS_FORWARD_WD   -1:0] ms_forward    ,
     //div    
     input  [31:0]                  div_result    ,
@@ -20,11 +20,14 @@ module mem_stage(
     input  [63:0]                  mul_result    ,
     //from data-sram
     input  [31                 :0] data_sram_rdata
+    
+    input  excp_flush,
+    input  ertn_flush
 );
 
 /* --------------  Signal interface  -------------- */
 //ES to MS bus
-reg [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus_r;
+reg [`ES_TO_MS_BUS_WD-1:0] es_to_ms_bus_r;
 wire        ms_res_from_mem;
 wire        ms_gr_we;
 wire [ 4:0] ms_dest;
@@ -37,8 +40,8 @@ wire [ 3:0] ms_mul_div_op;
 assign ms_pc = es_to_ms_bus_r[31:0];
 assign ms_alu_result = es_to_ms_bus_r[63:32];
 assign ms_dest = es_to_ms_bus_r[68:64];
-assign ms_gr_we = es_to_ms_bus_r[69];
-assign ms_res_from_mem = es_to_ms_bus_r[70];
+assign ms_gr_we = es_to_ms_bus_r[69:69];
+assign ms_res_from_mem = es_to_ms_bus_r[70:70];
 assign ms_op_st_h = es_to_ms_bus_r[71];
 assign ms_op_st_b = es_to_ms_bus_r[72];
 assign ms_op_st_w = es_to_ms_bus_r[73];
@@ -88,9 +91,7 @@ always @(posedge clk) begin
     end
 end
 
-
 /* --------------  MEM read interface  -------------- */
-
 wire [7:0]  mem_byte_data;
 wire [15:0] mem_halfword_data;
 
@@ -141,10 +142,29 @@ assign mem_result = {32{ms_op_ld_w}}  & final_data_sram_rdata                   
                     {32{ms_op_ld_hu}} & {16'b0, mem_halfword_data};
 
 
+/* exception */
+wire flush;
+
+wire es_excp;
+wire [15:0] es_excp_num;
+wire ms_excp;
+wire [15:0] ms_excp_num;
+
+assign flush = excp_flush | ertn_flush;
+
+assign es_excp     = es_to_ms_bus_r[82:82];
+assign es_excp_num = es_to_ms_bus_r[98:83];
+assign ms_excp     = es_excp;
+assign ms_excp_num = es_excp_num;
+
+assign ms_to_ws_bus[70:70] = ms_excp;
+assign ms_to_ws_bus[86:71] = ms_excp_num;
+
 assign ms_final_result = ({32{ms_res_from_mem }} & mem_result       )  |
                          ({32{ms_mul_div_op[0]}} & mul_result[31:0] )  |
                          ({32{ms_mul_div_op[1]}} & mul_result[63:32])  |
                          ({32{ms_mul_div_op[2]}} & div_result       )  |
                          ({32{ms_mul_div_op[3]}} & mod_result       )  |
                          ({32{!ms_mul_div_sign && !ms_res_from_mem}} & ms_alu_result);
+
 endmodule
