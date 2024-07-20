@@ -59,11 +59,6 @@ assign ms_mul_div_op = es_to_ms_bus_r[86:83];
 wire [31:0] mem_result;
 wire [31:0] ms_final_result;
 
-assign ms_to_ws_bus [31:0] = ms_pc;
-assign ms_to_ws_bus [63:32] = ms_final_result;
-assign ms_to_ws_bus [68:64] = ms_dest;
-assign ms_to_ws_bus [69] = ms_gr_we;
-
 reg         ms_valid;
 wire        ms_ready_go;
 //forward to DS
@@ -152,13 +147,10 @@ wire [15:0] ms_excp_num;
 
 assign flush = excp_flush | ertn_flush;
 
-assign es_excp     = es_to_ms_bus_r[82:82];
-assign es_excp_num = es_to_ms_bus_r[98:83];
+assign es_excp     = es_to_ms_bus_r[ 87: 87];
+assign es_excp_num = es_to_ms_bus_r[103: 88];
 assign ms_excp     = es_excp;
 assign ms_excp_num = es_excp_num;
-
-assign ms_to_ws_bus[70:70] = ms_excp;
-assign ms_to_ws_bus[86:71] = ms_excp_num;
 
 assign ms_final_result = ({32{ms_res_from_mem }} & mem_result       )  |
                          ({32{ms_mul_div_op[0]}} & mul_result[31:0] )  |
@@ -166,5 +158,12 @@ assign ms_final_result = ({32{ms_res_from_mem }} & mem_result       )  |
                          ({32{ms_mul_div_op[2]}} & div_result       )  |
                          ({32{ms_mul_div_op[3]}} & mod_result       )  |
                          ({32{!ms_mul_div_sign && !ms_res_from_mem}} & ms_alu_result);
+
+assign ms_to_ws_bus[31: 0] = ms_pc;
+assign ms_to_ws_bus[63:32] = ms_final_result;
+assign ms_to_ws_bus[68:64] = ms_dest;
+assign ms_to_ws_bus[69:69] = ms_gr_we;
+assign ms_to_ws_bus[70:70] = ms_excp;
+assign ms_to_ws_bus[86:71] = ms_excp_num;
 
 endmodule

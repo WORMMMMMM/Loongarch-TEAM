@@ -335,9 +335,9 @@ assign dest   = inst_bl ? 5'h01 : rd;
 assign gr_we  = ~inst_st_w & ~inst_st_b & ~inst_st_h & ~inst_b & ~inst_br & (dest != 5'b0);
 assign res_from_mem = inst_ld_b | inst_ld_h | inst_ld_w | inst_ld_bu | inst_ld_hu;
 
-assign {sign, result} = {1'b0, rj_value} + {1'b1, ~rk_value} + 33'd1;
-assign overflow = (rj_value[31] ^ rk_value[31]) & (rj_value[31] ^ result[31]);
-assign rj_eq_rd  = (rj_value == rk_value);
+assign {sign, result} = {1'b0, rj_value} + {1'b1, ~rkd_value} + 33'd1;
+assign overflow = (rj_value[31] ^ rkd_value[31]) & (rj_value[31] ^ result[31]);
+assign rj_eq_rd  = (rj_value == rkd_value);
 assign rj_lt_rd  = result[31] ^ overflow;
 assign rj_ltu_rd = sign;
 assign br_taken  = ( inst_jirl | inst_b | inst_bl
@@ -351,32 +351,6 @@ assign br_target = inst_jirl ? rj_value + imm : pc + imm;
 
 assign br_bus[32:32] = br_taken;
 assign br_bus[31: 0] = br_target;
-
-/*----------------- Signal interface -----------------*/
-// DS to ES bus
-assign ds_to_es_bus[ 31:  0] = pc;
-assign ds_to_es_bus[ 32: 32] = inst_ld_b;
-assign ds_to_es_bus[ 33: 33] = inst_ld_h;
-assign ds_to_es_bus[ 34: 34] = inst_ld_w;
-assign ds_to_es_bus[ 35: 35] = inst_st_b;
-assign ds_to_es_bus[ 36: 36] = inst_st_h;
-assign ds_to_es_bus[ 37: 37] = inst_st_w;
-assign ds_to_es_bus[ 38: 38] = inst_ld_bu;
-assign ds_to_es_bus[ 39: 39] = inst_ld_hu;
-assign ds_to_es_bus[ 71: 40] = imm;
-assign ds_to_es_bus[103: 72] = rk_value;
-assign ds_to_es_bus[135:104] = rj_value;
-assign ds_to_es_bus[136:136] = src1_is_pc;
-assign ds_to_es_bus[137:137] = src2_is_imm;
-assign ds_to_es_bus[138:138] = src2_is_4;
-assign ds_to_es_bus[157:139] = alu_op;
-assign ds_to_es_bus[158:158] = mem_en;
-assign ds_to_es_bus[159:159] = mem_we;
-assign ds_to_es_bus[164:160] = dest;
-assign ds_to_es_bus[165:165] = gr_we;
-assign ds_to_es_bus[166:166] = res_from_mem;
-assign ds_to_es_bus[170:167] = mul_div_op;
-assign ds_to_es_bus[171:171] = mul_div_sign;
 
 /*-----------------Hazard detection-----------------*/
 //signals from ES
@@ -494,6 +468,29 @@ assign fs_excp_num = fs_to_ds_bus_r[80:65];
 assign ds_excp     = fs_excp | excp_sys | excp_brk | excp_ine;
 assign ds_excp_num = fs_excp_num | {5'b0, excp_sys, excp_brk, excp_ine, 8'b0};
 
+assign ds_to_es_bus[ 31:  0] = pc;
+assign ds_to_es_bus[ 32: 32] = inst_ld_b;
+assign ds_to_es_bus[ 33: 33] = inst_ld_h;
+assign ds_to_es_bus[ 34: 34] = inst_ld_w;
+assign ds_to_es_bus[ 35: 35] = inst_st_b;
+assign ds_to_es_bus[ 36: 36] = inst_st_h;
+assign ds_to_es_bus[ 37: 37] = inst_st_w;
+assign ds_to_es_bus[ 38: 38] = inst_ld_bu;
+assign ds_to_es_bus[ 39: 39] = inst_ld_hu;
+assign ds_to_es_bus[ 71: 40] = imm;
+assign ds_to_es_bus[103: 72] = rkd_value;
+assign ds_to_es_bus[135:104] = rj_value;
+assign ds_to_es_bus[136:136] = src1_is_pc;
+assign ds_to_es_bus[137:137] = src2_is_imm;
+assign ds_to_es_bus[138:138] = src2_is_4;
+assign ds_to_es_bus[157:139] = alu_op;
+assign ds_to_es_bus[158:158] = mem_en;
+assign ds_to_es_bus[159:159] = mem_we;
+assign ds_to_es_bus[164:160] = dest;
+assign ds_to_es_bus[165:165] = gr_we;
+assign ds_to_es_bus[166:166] = res_from_mem;
+assign ds_to_es_bus[170:167] = mul_div_op;
+assign ds_to_es_bus[171:171] = mul_div_sign;
 assign ds_to_es_bus[172:172] = ds_excp;
 assign ds_to_es_bus[188:173] = ds_excp_num;
 

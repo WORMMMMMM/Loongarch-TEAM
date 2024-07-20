@@ -93,25 +93,6 @@ assign es_mul_div_op   = ds_to_es_bus_r[170:167];
 assign es_mul_div_sign = ds_to_es_bus_r[171:171];
 assign es_inst_load    = es_op_ld_b || es_op_ld_h || es_op_ld_w || es_op_ld_bu || es_op_ld_hu;
 
-//ES to MS bus
-assign es_to_ms_bus[31: 0] = es_pc;
-assign es_to_ms_bus[63:32] = es_alu_result;
-assign es_to_ms_bus[68:64] = es_dest;
-assign es_to_ms_bus[69:69] = es_gr_we;
-assign es_to_ms_bus[70:70] = es_res_from_mem;
-assign es_to_ms_bus[71:70] = es_op_st_h;
-assign es_to_ms_bus[72:72] = es_op_st_b;
-assign es_to_ms_bus[73:73] = es_op_st_w;
-assign es_to_ms_bus[74:74] = es_op_ld_hu;
-assign es_to_ms_bus[75:75] = es_op_ld_h;
-assign es_to_ms_bus[76:76] = es_op_ld_bu;
-assign es_to_ms_bus[77:77] = es_op_ld_b;
-assign es_to_ms_bus[78:78] = es_op_ld_w;
-assign es_to_ms_bus[79:79] = es_mem_we;
-assign es_to_ms_bus[81:80] = data_sram_addr[1:0];
-assign es_to_ms_bus[82:82] = es_mul_div_sign;
-assign es_to_ms_bus[86:83] = es_mul_div_op;
-
 //forward to DS
 assign es_forward [0] = es_valid;
 assign es_forward [1] = es_gr_we;
@@ -212,11 +193,28 @@ assign flush = excp_flush | ertn_flush;
 assign excp_ale = (es_op_ld_h | es_op_st_h | es_op_ld_hu) & data_sram_addr[0] != 1'b0
                 | (es_op_ld_w | es_op_st_w) & data_sram_addr[1:0] != 2'b00;
 
-assign ds_excp     = ds_to_es_bus_r[167:167];
-assign ds_excp_num = ds_to_es_bus_r[183:168];
+assign ds_excp     = ds_to_es_bus_r[172:172];
+assign ds_excp_num = ds_to_es_bus_r[188:173];
 assign es_excp     = ds_excp | excp_ale;
 assign ex_excp_num = ds_excp_num | {9'b0, excp_ale, 6'b0};
 
+assign es_to_ms_bus[ 31:  0] = es_pc;
+assign es_to_ms_bus[ 63: 32] = es_alu_result;
+assign es_to_ms_bus[ 68: 64] = es_dest;
+assign es_to_ms_bus[ 69: 69] = es_gr_we;
+assign es_to_ms_bus[ 70: 70] = es_res_from_mem;
+assign es_to_ms_bus[ 71: 70] = es_op_st_h;
+assign es_to_ms_bus[ 72: 72] = es_op_st_b;
+assign es_to_ms_bus[ 73: 73] = es_op_st_w;
+assign es_to_ms_bus[ 74: 74] = es_op_ld_hu;
+assign es_to_ms_bus[ 75: 75] = es_op_ld_h;
+assign es_to_ms_bus[ 76: 76] = es_op_ld_bu;
+assign es_to_ms_bus[ 77: 77] = es_op_ld_b;
+assign es_to_ms_bus[ 78: 78] = es_op_ld_w;
+assign es_to_ms_bus[ 79: 79] = es_mem_we;
+assign es_to_ms_bus[ 81: 80] = data_sram_addr[1:0];
+assign es_to_ms_bus[ 82: 82] = es_mul_div_sign;
+assign es_to_ms_bus[ 86: 83] = es_mul_div_op;
 assign es_to_ms_bus[ 87: 87] = es_excp;
 assign es_to_ms_bus[103: 88] = ex_excp_num;
 
