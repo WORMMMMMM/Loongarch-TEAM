@@ -61,12 +61,12 @@ wire        es_op_st_b    ;
 wire        es_op_st_h    ;
 wire        es_op_st_w    ;
 wire        es_res_from_mem;
+wire        er_res_from_csr;
 
 /* --------------  Signals interface  -------------- */
 wire        es_inst_load  ;
 wire [31:0] es_alu_result ;
-//wire [ 3:0] es_mul_div_op_r;
-//wire        es_mul_div_sign_r;
+
 //DS to ES bus
 assign es_pc           = ds_to_es_bus_r[ 31:  0];
 assign es_op_ld_b      = ds_to_es_bus_r[ 32: 32];
@@ -89,8 +89,9 @@ assign es_mem_we       = ds_to_es_bus_r[159:159];
 assign es_dest         = ds_to_es_bus_r[164:160];
 assign es_gr_we        = ds_to_es_bus_r[165:165];
 assign es_res_from_mem = ds_to_es_bus_r[166:166];
-assign es_mul_div_op   = ds_to_es_bus_r[170:167];
-assign es_mul_div_sign = ds_to_es_bus_r[171:171];
+assign es_res_from_csr = ds_to_es_bus_r[167:167];
+assign es_mul_div_op   = ds_to_es_bus_r[171:168];
+assign es_mul_div_sign = ds_to_es_bus_r[172:172];
 assign es_inst_load    = es_op_ld_b || es_op_ld_h || es_op_ld_w || es_op_ld_bu || es_op_ld_hu;
 
 //forward to DS
@@ -188,34 +189,51 @@ wire [15:0] ds_excp_num;
 wire es_excp;
 wire [15:0] ex_excp_num;
 
+/* csr */
+wire csr_we;
+wire [13:0] csr_num;
+wire [31:0] csr_wmask;
+wire [31:0] csr_wdata;
+
+
 assign flush = excp_flush | ertn_flush;
 
 assign excp_ale = (es_op_ld_h | es_op_st_h | es_op_ld_hu) & data_sram_addr[0] != 1'b0
                 | (es_op_ld_w | es_op_st_w) & data_sram_addr[1:0] != 2'b00;
 
-assign ds_excp     = ds_to_es_bus_r[172:172];
-assign ds_excp_num = ds_to_es_bus_r[188:173];
+assign ds_excp     = ds_to_es_bus_r[173:173];
+assign ds_excp_num = ds_to_es_bus_r[189:174];
 assign es_excp     = ds_excp | excp_ale;
 assign ex_excp_num = ds_excp_num | {9'b0, excp_ale, 6'b0};
+
+assign csr_we    = ds_to_es_bus_r[190:190];
+assign csr_num   = ds_to_es_bus_r[204:191];
+assign csr_wmask = ds_to_es_bus_r[236:205];
+assign csr_wdata = ds_to_es_bus_r[268:237];
 
 assign es_to_ms_bus[ 31:  0] = es_pc;
 assign es_to_ms_bus[ 63: 32] = es_alu_result;
 assign es_to_ms_bus[ 68: 64] = es_dest;
 assign es_to_ms_bus[ 69: 69] = es_gr_we;
 assign es_to_ms_bus[ 70: 70] = es_res_from_mem;
-assign es_to_ms_bus[ 71: 70] = es_op_st_h;
-assign es_to_ms_bus[ 72: 72] = es_op_st_b;
-assign es_to_ms_bus[ 73: 73] = es_op_st_w;
-assign es_to_ms_bus[ 74: 74] = es_op_ld_hu;
-assign es_to_ms_bus[ 75: 75] = es_op_ld_h;
-assign es_to_ms_bus[ 76: 76] = es_op_ld_bu;
-assign es_to_ms_bus[ 77: 77] = es_op_ld_b;
-assign es_to_ms_bus[ 78: 78] = es_op_ld_w;
-assign es_to_ms_bus[ 79: 79] = es_mem_we;
-assign es_to_ms_bus[ 81: 80] = data_sram_addr[1:0];
-assign es_to_ms_bus[ 82: 82] = es_mul_div_sign;
+assign es_to_ms_bus[ 71: 71] = es_res_from_csr;
+assign es_to_ms_bus[ 72: 72] = es_op_st_h;
+assign es_to_ms_bus[ 73: 73] = es_op_st_b;
+assign es_to_ms_bus[ 74: 74] = es_op_st_w;
+assign es_to_ms_bus[ 75: 75] = es_op_ld_hu;
+assign es_to_ms_bus[ 76: 76] = es_op_ld_h;
+assign es_to_ms_bus[ 77: 77] = es_op_ld_bu;
+assign es_to_ms_bus[ 78: 78] = es_op_ld_b;
+assign es_to_ms_bus[ 79: 79] = es_op_ld_w;
+assign es_to_ms_bus[ 80: 80] = es_mem_we;
+assign es_to_ms_bus[ 82: 81] = data_sram_addr[1:0];
 assign es_to_ms_bus[ 86: 83] = es_mul_div_op;
-assign es_to_ms_bus[ 87: 87] = es_excp;
-assign es_to_ms_bus[103: 88] = ex_excp_num;
+assign es_to_ms_bus[ 87: 87] = es_mul_div_sign;
+assign es_to_ms_bus[ 88: 88] = es_excp;
+assign es_to_ms_bus[104: 89] = ex_excp_num;
+assign es_to_ms_bus[105:105] = csr_we;
+assign es_to_ms_bus[119:106] = csr_num;
+assign es_to_ms_bus[151:120] = csr_wmask;
+assign es_to_ms_bus[183:152] = csr_wdata;
 
 endmodule

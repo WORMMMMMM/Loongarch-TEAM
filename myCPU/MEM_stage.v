@@ -29,6 +29,7 @@ module mem_stage(
 //ES to MS bus
 reg [`ES_TO_MS_BUS_WD-1:0] es_to_ms_bus_r;
 wire        ms_res_from_mem;
+wire        ms_res_from_csr;
 wire        ms_gr_we;
 wire [ 4:0] ms_dest;
 wire [31:0] ms_alu_result;
@@ -37,23 +38,24 @@ wire [ 1:0] ms_addr_lowbits;
 wire        ms_mul_div_sign;
 wire [ 3:0] ms_mul_div_op;
 
-assign ms_pc = es_to_ms_bus_r[31:0];
-assign ms_alu_result = es_to_ms_bus_r[63:32];
-assign ms_dest = es_to_ms_bus_r[68:64];
-assign ms_gr_we = es_to_ms_bus_r[69:69];
+assign ms_pc           = es_to_ms_bus_r[31: 0];
+assign ms_alu_result   = es_to_ms_bus_r[63:32];
+assign ms_dest         = es_to_ms_bus_r[68:64];
+assign ms_gr_we        = es_to_ms_bus_r[69:69];
 assign ms_res_from_mem = es_to_ms_bus_r[70:70];
-assign ms_op_st_h = es_to_ms_bus_r[71];
-assign ms_op_st_b = es_to_ms_bus_r[72];
-assign ms_op_st_w = es_to_ms_bus_r[73];
-assign ms_op_ld_hu = es_to_ms_bus_r[74];
-assign ms_op_ld_h = es_to_ms_bus_r[75];
-assign ms_op_ld_bu = es_to_ms_bus_r[76];
-assign ms_op_ld_b = es_to_ms_bus_r[77];
-assign ms_op_ld_w = es_to_ms_bus_r[78];
-assign ms_mem_we = es_to_ms_bus_r[79];
-assign ms_addr_lowbits = es_to_ms_bus_r[81:80];
-assign ms_mul_div_sign = es_to_ms_bus_r[82];
-assign ms_mul_div_op = es_to_ms_bus_r[86:83];
+assign ms_res_from_csr = es_to_ms_bus_r[71:71];
+assign ms_op_st_h      = es_to_ms_bus_r[72:72];
+assign ms_op_st_b      = es_to_ms_bus_r[73:73];
+assign ms_op_st_w      = es_to_ms_bus_r[74:74];
+assign ms_op_ld_hu     = es_to_ms_bus_r[75:75];
+assign ms_op_ld_h      = es_to_ms_bus_r[76:76];
+assign ms_op_ld_bu     = es_to_ms_bus_r[77:77];
+assign ms_op_ld_b      = es_to_ms_bus_r[78:78];
+assign ms_op_ld_w      = es_to_ms_bus_r[79:79];
+assign ms_mem_we       = es_to_ms_bus_r[80:80];
+assign ms_addr_lowbits = es_to_ms_bus_r[82:81];
+assign ms_mul_div_sign = es_to_ms_bus_r[83:83];
+assign ms_mul_div_op   = es_to_ms_bus_r[87:84];
 
 //MS to WS bus
 wire [31:0] mem_result;
@@ -136,6 +138,12 @@ assign mem_result = {32{ms_op_ld_w}}  & final_data_sram_rdata                   
                     {32{ms_op_ld_h}}  & {{16{mem_halfword_data[15]}}, mem_halfword_data}|
                     {32{ms_op_ld_hu}} & {16'b0, mem_halfword_data};
 
+assign ms_final_result = ({32{ms_res_from_mem }} & mem_result       )  |
+                         ({32{ms_mul_div_op[0]}} & mul_result[31:0] )  |
+                         ({32{ms_mul_div_op[1]}} & mul_result[63:32])  |
+                         ({32{ms_mul_div_op[2]}} & div_result       )  |
+                         ({32{ms_mul_div_op[3]}} & mod_result       )  |
+                         ({32{!ms_mul_div_sign && !ms_res_from_mem}} & ms_alu_result);
 
 /* exception */
 wire flush;
@@ -145,25 +153,34 @@ wire [15:0] es_excp_num;
 wire ms_excp;
 wire [15:0] ms_excp_num;
 
+/* csr */
+wire csr_we;
+wire [13:0] csr_num;
+wire [31:0] csr_wmask;
+wire [31:0] csr_wdata;
+
 assign flush = excp_flush | ertn_flush;
 
-assign es_excp     = es_to_ms_bus_r[ 87: 87];
-assign es_excp_num = es_to_ms_bus_r[103: 88];
+assign es_excp     = es_to_ms_bus_r[ 88: 88];
+assign es_excp_num = es_to_ms_bus_r[104: 89];
 assign ms_excp     = es_excp;
 assign ms_excp_num = es_excp_num;
 
-assign ms_final_result = ({32{ms_res_from_mem }} & mem_result       )  |
-                         ({32{ms_mul_div_op[0]}} & mul_result[31:0] )  |
-                         ({32{ms_mul_div_op[1]}} & mul_result[63:32])  |
-                         ({32{ms_mul_div_op[2]}} & div_result       )  |
-                         ({32{ms_mul_div_op[3]}} & mod_result       )  |
-                         ({32{!ms_mul_div_sign && !ms_res_from_mem}} & ms_alu_result);
+assign csr_we    = es_to_ms_bus_r[105:105];
+assign csr_num   = es_to_ms_bus_r[119:106];
+assign csr_wmask = es_to_ms_bus_r[151:120];
+assign csr_wdata = es_to_ms_bus_r[183:152];
 
-assign ms_to_ws_bus[31: 0] = ms_pc;
-assign ms_to_ws_bus[63:32] = ms_final_result;
-assign ms_to_ws_bus[68:64] = ms_dest;
-assign ms_to_ws_bus[69:69] = ms_gr_we;
-assign ms_to_ws_bus[70:70] = ms_excp;
-assign ms_to_ws_bus[86:71] = ms_excp_num;
+assign ms_to_ws_bus[ 31:  0] = ms_pc;
+assign ms_to_ws_bus[ 63: 32] = ms_final_result;
+assign ms_to_ws_bus[ 68: 64] = ms_dest;
+assign ms_to_ws_bus[ 69: 69] = ms_gr_we;
+assign ms_to_ws_bus[ 70: 70] = ms_res_from_csr;
+assign ms_to_ws_bus[ 71: 71] = ms_excp;
+assign ms_to_ws_bus[ 87: 72] = ms_excp_num;
+assign ms_to_ws_bus[ 88: 88] = csr_we;
+assign ms_to_ws_bus[102: 89] = csr_num;
+assign ms_to_ws_bus[134:103] = csr_wmask;
+assign ms_to_ws_bus[166:135] = csr_wdata;
 
 endmodule

@@ -10,7 +10,6 @@ module if_stage(
     output fs_to_ds_valid,
     output [`FS_TO_DS_BUS_WD-1:0] fs_to_ds_bus,
     input  [`BR_BUS_WD-1:0] br_bus,
-    input  [`EX_BUS_WD-1:0] ex_bus,
     input  excp_flush,
     input  ertn_flush,
     input  [31:0] era,
@@ -63,10 +62,6 @@ assign nextpc      = excp_flush ? eentry :
                      br_taken   ? br_target :
                      seq_pc;
 
-assign excp_flush = ex_bus[ 0: 0];
-assign ertn_flush = ex_bus[ 1: 1];
-assign era        = ex_bus[31: 0];
-assign eentry     = ex_bus[63:32];
 assign flush = excp_flush | ertn_flush;
 
 assign excp_adef   = nextpc[1:0] != 2'b00;
