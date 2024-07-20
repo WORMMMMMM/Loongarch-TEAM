@@ -20,6 +20,7 @@ module mem_stage(
     input  [63:0]                  mul_result    ,
     //from data-sram
     input  [31                 :0] data_sram_rdata
+    input                          data_sram_data_ok,
 );
 
 /* --------------  Signal interface  -------------- */
@@ -33,7 +34,7 @@ wire [31:0] ms_pc;
 wire [ 1:0] ms_addr_lowbits;
 wire        ms_mul_div_sign;
 wire [ 3:0] ms_mul_div_op;
-
+wire        ms_op_mem = ms_op_st_w || ms_op_st_h || ms_op_st_b || ms_op_ld_w || ms_op_ld_hu || ms_op_ld_h || ms_op_ld_bu || ms_op_ld_b;
 assign ms_pc = es_to_ms_bus_r[31:0];
 assign ms_alu_result = es_to_ms_bus_r[63:32];
 assign ms_dest = es_to_ms_bus_r[68:64];
@@ -64,15 +65,16 @@ assign ms_to_ws_bus [69] = ms_gr_we;
 reg         ms_valid;
 wire        ms_ready_go;
 //forward to DS
-assign ms_forward [0] = ms_valid;
+assign ms_forward [0] = ms_to_ws_valid;//following the advice of the book
 assign ms_forward [1] = ms_gr_we;
 assign ms_forward [6:2] = ms_dest;
 assign ms_forward [38:7] = ms_final_result;
 assign ms_forward [39] = ms_res_from_mem;
 assign ms_forward [71:40] = ms_pc;
+assign ms_forward [72] = data_sram_data_ok;
 /*----------------- Handshaking-----------------*/                      
 
-assign ms_ready_go    = 1'b1;
+assign ms_ready_go    = ms_op_mem?(data_sram_data_ok||data_sram_rdata_buf_valid):1'b1;
 assign ms_allowin     = !ms_valid || ms_ready_go && ws_allowin;
 assign ms_to_ws_valid = ms_valid && ms_ready_go;
 always @(posedge clk) begin

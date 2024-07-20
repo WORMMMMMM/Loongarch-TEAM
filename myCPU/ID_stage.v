@@ -137,7 +137,7 @@ wire mul_div_sign;
 /* mem */
 wire mem_e;
 wire mem_we;
-
+wire load_block;
 /* write back */
 wire [ 4: 0] wb_dest;
 wire wb_gr_we;
@@ -153,10 +153,12 @@ wire rj_ltu_rd;
 wire br_taken;
 wire [31: 0] br_target;
 /*----------------- Handshaking-----------------*/
+assign  load_block = es_valid && es_res_from_mem && (raw_ed_1_r || raw_ed_2_r) ||
+                     ms_valid && ms_res_from_mem && (raw_md_1_r || raw_md_2_r) && ~ms_data_sram_data_ok;
 wire ds_ready_go;
 wire ds_ready_go_r;
 reg  ds_valid;
-
+assign ds_ready_go = !load_block;// last inst is load or the former inst is load and data hasn't been received
 assign ds_allowin     = ~ds_valid | ds_ready_go & es_allowin;
 assign ds_to_es_valid =  ds_valid & ds_ready_go;
 always @(posedge clk) begin
@@ -378,14 +380,14 @@ wire [ 4: 0] ms_dest;
 wire [31: 0] ms_final_result;
 wire ms_res_from_mem;
 wire [31: 0] ms_pc;
-
+wire ms_data_sram_data_ok;
 assign ms_valid        = ms_forward[0];
 assign ms_gr_we        = ms_forward[1];
 assign ms_dest         = ms_forward[6:2];
 assign ms_final_result = ms_forward[38:7];
 assign ms_res_from_mem = ms_forward[39];
 assign ms_pc           = ms_forward[71:40];
-
+assign ms_data_sram_data_ok = ms_forward[72];
 //signals from WS
 wire ws_valid;
 wire ws_gr_we;
@@ -401,15 +403,18 @@ assign ws_pc           = ws_forward[70:39];
 
 //RAW hazard
 wire raw;
-wire raw_ed_1;//ES to DS 的数据冒�??
+wire raw_ed_1;//ES to DS 的数据冒�??
 wire raw_ed_2;
 wire raw_md_1;
 wire raw_md_2;
 wire raw_wd_1;
 wire raw_wd_2;
+wire br_stall;
 
-assign ds_ready_go_r  = ~(es_valid&&es_inst_load&&(raw_ed_1|raw_ed_2));//如果发生load-use冒险，则ID停一个阶段�?
-assign ds_ready_go    = (ds_ready_go_r === 1'bx) ? 1'b1 : ds_ready_go_r;
+//assign br_stall = es_valid && es_res_from_mem && need_offs16 && (raw_ed_1_r || raw_ed_2_r)
+               //|| need_offs16 && (raw_md_1_r || raw_md_2_r)); ??? uncertain to add this
+               //last inst is load inst and this inst is branch
+
 
 assign no_src1 = inst_b || inst_bl || inst_pcaddu12i || 
                  inst_rdcntvl_w || inst_rdcntvh_w || inst_rdcntid;

@@ -24,8 +24,8 @@ module exe_stage(
     output [ 3:0]                  data_sram_wstrb,
     // data sram interface
     output                         data_sram_req  ,
-    output                         data_sram_en   ,
-    output [                  3:0] data_sram_we,
+    output                         data_sram_wr   ,
+    output [                  3:0] data_sram_wstrb,
     output [                 31:0] data_sram_addr ,
     output [                 31:0] data_sram_wdata,
     output [                  1:0] data_sram_size ,
@@ -115,7 +115,7 @@ assign es_forward [70:39] = es_pc;
 assign es_forward [71] = es_inst_load;
 /* --------------  Handshaking  -------------- */
 
-assign es_ready_go    = !es_div_stall;
+assign es_ready_go    = ~es_op_mem?!es_div_stall:!es_div_stall && (data_sram_addr_ok && data_sram_addr_ok);
 assign es_allowin     = !es_valid || es_ready_go && ms_allowin;
 assign es_to_ms_valid =  es_valid && es_ready_go;
 always @(posedge clk) begin
@@ -169,7 +169,7 @@ assign data_sram_wdata = {32{es_op_st_b}} & {4{es_rkd_value[ 7:0]}} |
                          {32{es_op_st_h}} & {2{es_rkd_value[15:0]}} |
                          {32{es_op_st_w}} & es_rkd_value[31:0];
 assign data_sram_wr    = |data_sram_wstrb;
-
+wire        es_op_mem  = es_op_ld_w ||es_op_ld_b || es_op_ld_bu || es_op_ld_h || es_op_ld_hu || es_op_st_b || es_op_st_h || es_op_st_w;
 
 
 
@@ -179,7 +179,7 @@ assign data_sram_size  = {2{es_op_st_b || es_op_ld_b || es_op_ld_bu}} & 2'b00 |
                          {2{es_op_st_w || es_op_ld_w}}                & 2'b10;
 
 
-assign data_sram_en    = es_mem_en;//存储的使�??
+assign data_sram_en    = es_mem_en;//存储的使�??
 assign data_sram_we   = es_mem_we&&es_valid ? 4'hf : 4'h0;
 assign data_sram_addr  = es_alu_result;
 
