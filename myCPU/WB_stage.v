@@ -109,25 +109,26 @@ assign csr_ecode = ws_excp_num[ 0] ? `ECODE_INT :
                    ws_excp_num[14] ? `ECODE_PIL :
                    6'b0;
 
+assign csr_esubcode = 3'b0;
 
 regcsr u_regcsr(
-    .clk        (clk        ),
-    .reset      (reset      ),
+    .clk        (clk         ),
+    .reset      (reset       ),
 
-    .csr_we     (csr_we     ),
-    .csr_num    (csr_num    ),
-    .csr_wmask  (csr_wmask  ),
-    .csr_wdata  (csr_wdata  ),
-    .csr_rdata  (csr_rdata  ),
+    .csr_we     (csr_we      ),
+    .csr_num    (csr_num     ),
+    .csr_wmask  (csr_wmask   ),
+    .csr_wdata  (csr_wdata   ),
+    .csr_rdata  (csr_rdata   ),
 
-    .excp_flush (excp_flush ),
-    .ertn_flush (ertn_flush ),
-    .ecode      (ws_ecode   ),
-    .esubcode   (ws_esubcode),
-    .epc        (ws_pc      ),
+    .excp_flush (excp_flush  ),
+    .ertn_flush (ertn_flush  ),
+    .ecode      (csr_ecode   ),
+    .esubcode   (csr_esubcode),
+    .epc        (ws_pc       ),
 
-    .era        (era        ),
-    .eentry     (eentry     ),
+    .era        (era         ),
+    .eentry     (eentry      ),
 );
 
 wire        rf_we;
