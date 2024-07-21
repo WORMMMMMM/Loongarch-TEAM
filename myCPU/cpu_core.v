@@ -76,11 +76,6 @@ if_stage if_stage(
     // to ds
     .fs_to_ds_valid (fs_to_ds_valid ),
     .fs_to_ds_bus   (fs_to_ds_bus   ),
-    // forward
-    .ws_to_fs_bus   (ws_to_fs_bus   ),
-    .es_forward     (es_forward     ),
-    .ms_forward     (ms_forward     ),
-    .ws_forward     (ws_forward     ),
     // inst sram interface
     .inst_sram_req   (inst_sram_req   ),
     .inst_sram_wstrb (inst_sram_wstrb ),
@@ -90,7 +85,7 @@ if_stage if_stage(
     .inst_sram_size (inst_sram_size ),
     .inst_sram_addr_ok(inst_sram_addr_ok),
     .inst_sram_data_ok(inst_sram_data_ok),
-    .inst_sram_wr   (inst_sram_wr   ),
+    .inst_sram_wr   (inst_sram_wr   )
 );
 
 id_stage id_stage(
@@ -193,7 +188,7 @@ mem_stage mem_stage(
     .mul_result     (mul_result     ),
     // from data-sram
     .data_sram_rdata(data_sram_rdata),
-    .data_sram_data_ok(data_sram_data_ok),
+    .data_sram_data_ok(data_sram_data_ok)
 );
 
 wb_stage wb_stage(

@@ -21,7 +21,6 @@ module exe_stage(
     output [31:0]                  es_rkd_value    ,
     input                          div_complete    ,
     
-    output [ 3:0]                  data_sram_wstrb,
     // data sram interface
     output                         data_sram_req  ,
     output                         data_sram_wr   ,

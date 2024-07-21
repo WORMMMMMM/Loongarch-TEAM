@@ -172,7 +172,7 @@ cpu_core cpu_core(
     .data_sram_wr      (data_sram_wr     ),
     // trace debug interface
     .debug_wb_pc       (debug_wb_pc      ),
-    .debug_wb_rf_wen   (debug_wb_rf_wen  ),
+    .debug_wb_rf_we   (debug_wb_rf_we  ),
     .debug_wb_rf_wnum  (debug_wb_rf_wnum ),
     .debug_wb_rf_wdata (debug_wb_rf_wdata)
 );

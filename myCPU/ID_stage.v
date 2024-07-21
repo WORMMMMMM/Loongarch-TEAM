@@ -151,9 +151,10 @@ wire rj_eq_rd;
 wire rj_lt_rd;
 wire rj_ltu_rd;
 wire br_taken;
+wire br_stall;
 wire [31: 0] br_target;
 /*----------------- Handshaking-----------------*/
-assign  load_block = es_valid && es_res_from_mem && (raw_ed_1_r || raw_ed_2_r) ||
+assign  load_block = es_valid && es_inst_load && (raw_ed_1_r || raw_ed_2_r) ||
                      ms_valid && ms_res_from_mem && (raw_md_1_r || raw_md_2_r) && ~ms_data_sram_data_ok;
 wire ds_ready_go;
 wire ds_ready_go_r;
@@ -164,8 +165,8 @@ assign ds_to_es_valid =  ds_valid & ds_ready_go;
 always @(posedge clk) begin
     if (reset)
         ds_valid <= 1'b0;
-    //else if (br_taken)    //////////////
-    //    ds_valid <= 1'b0;
+    else if (br_taken)    //////////////
+        ds_valid <= 1'b0;
     else if (ds_allowin)
         ds_valid <= fs_to_ds_valid;
     if (fs_to_ds_valid && ds_allowin)
@@ -326,9 +327,11 @@ assign br_taken  = ( inst_jirl | inst_b | inst_bl
                  | (inst_bge  & ~rj_lt_rd)
                  | (inst_bltu &  rj_ltu_rd)
                  | (inst_bgeu & ~rj_ltu_rd)
-                 ) ;//&& ds_valid && ds_ready_go;  ///////
+                 ) && ds_valid && ds_ready_go;  ///////
 assign br_target = inst_jirl ? rj_value + imm : pc + imm;
+assign br_stall  = load_block;
 /*----------------- BrBUS to FS -----------------*/
+assign br_bus[   33] = br_stall;
 assign br_bus[32:32] = br_taken;
 assign br_bus[31: 0] = br_target;
 /*----------------- Signal interface -----------------*/

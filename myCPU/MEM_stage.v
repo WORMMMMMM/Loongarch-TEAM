@@ -19,8 +19,8 @@ module mem_stage(
     input  [31:0]                  mod_result    ,
     input  [63:0]                  mul_result    ,
     //from data-sram
-    input  [31                 :0] data_sram_rdata
-    input                          data_sram_data_ok,
+    input  [31                 :0] data_sram_rdata,
+    input                          data_sram_data_ok
 );
 
 /* --------------  Signal interface  -------------- */
@@ -65,7 +65,7 @@ assign ms_to_ws_bus [69] = ms_gr_we;
 reg         ms_valid;
 wire        ms_ready_go;
 //forward to DS
-assign ms_forward [0] = ms_to_ws_valid;//following the advice of the book
+assign ms_forward [0] = ms_valid;//following the advice of the book
 assign ms_forward [1] = ms_gr_we;
 assign ms_forward [6:2] = ms_dest;
 assign ms_forward [38:7] = ms_final_result;
