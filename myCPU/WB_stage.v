@@ -102,21 +102,21 @@ assign csr_num   = ms_to_ws_bus_r[102: 89];
 assign csr_wmask = ms_to_ws_bus_r[134:103];
 assign csr_wdata = ms_to_ws_bus_r[166:135];
 
-assign csr_ecode = ws_excp_num[ 0] ? `ECODE_INT :
-                   ws_excp_num[ 1] ? `ECODE_ADEF :
-                   ws_excp_num[ 2] ? `ECODE_TLBR :
-                   ws_excp_num[ 3] ? `ECODE_PIF :
-                   ws_excp_num[ 4] ? `ECODE_PPI :
-                   ws_excp_num[ 5] ? `ECODE_SYS :
-                   ws_excp_num[ 6] ? `ECODE_BRK :
-                   ws_excp_num[ 7] ? `ECODE_INE :
-                   ws_excp_num[ 8] ? `ECODE_IPE :
-                   ws_excp_num[ 9] ? `ECODE_ALE :
-                   ws_excp_num[10] ? `ECODE_TLBR :
-                   ws_excp_num[11] ? `ECODE_PME :
-                   ws_excp_num[12] ? `ECODE_PPI :
-                   ws_excp_num[13] ? `ECODE_PIS :
-                   ws_excp_num[14] ? `ECODE_PIL :
+assign csr_ecode = ws_excp_num[15] ? `ECODE_INT :
+                   ws_excp_num[14] ? `ECODE_ADEF :
+                   ws_excp_num[13] ? `ECODE_TLBR :
+                   ws_excp_num[12] ? `ECODE_PIF :
+                   ws_excp_num[11] ? `ECODE_PPI :
+                   ws_excp_num[10] ? `ECODE_SYS :
+                   ws_excp_num[ 9] ? `ECODE_BRK :
+                   ws_excp_num[ 8] ? `ECODE_INE :
+                   ws_excp_num[ 7] ? `ECODE_IPE :
+                   ws_excp_num[ 6] ? `ECODE_ALE :
+                   ws_excp_num[ 5] ? `ECODE_TLBR :
+                   ws_excp_num[ 4] ? `ECODE_PME :
+                   ws_excp_num[ 3] ? `ECODE_PPI :
+                   ws_excp_num[ 2] ? `ECODE_PIS :
+                   ws_excp_num[ 1] ? `ECODE_PIL :
                    6'b0;
 
 assign csr_esubcode = 3'b0;

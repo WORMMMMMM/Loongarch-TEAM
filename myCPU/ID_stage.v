@@ -23,7 +23,6 @@ module id_stage(
 );
 
 /* handshaking */
-
 reg  ds_valid;
 reg  [`FS_TO_DS_BUS_WD-1:0] fs_to_ds_bus_r;
 

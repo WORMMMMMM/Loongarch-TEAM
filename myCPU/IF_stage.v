@@ -26,7 +26,8 @@ module if_stage(
 );
 
 wire br_taken;
-wire br_taken_r;
+// wire br_taken_r;
+wire br_stall;
 wire [31:0] br_target;
 
 wire to_fs_valid;
@@ -36,12 +37,13 @@ wire fs_allowin;
 
 wire [31: 0] seq_pc;
 wire [31: 0] nextpc;
-
 reg  [31: 0] fs_pc;
+
 wire [31: 0] fs_inst;
 
 wire flush;
 
+wire excp_int;
 wire excp_adef;
 
 wire pfs_excp;
@@ -55,8 +57,8 @@ assign inst_sram_req   = fs_allowin; //req
 assign {br_taken_r, br_target} = br_bus;
 assign br_taken = br_taken_r !== 1'bx ? br_taken_r : 1'b0;
 
-assign to_fs_valid = ~reset;
-assign seq_pc      = fs_pc + 3'h4;
+assign to_fs_valid = ~reset || pfs_excp;
+assign seq_pc      = fs_pc + 32'h4;
 assign nextpc      = excp_flush ? eentry :
                      ertn_flush ? era :
                      br_taken   ? br_target :
@@ -70,12 +72,12 @@ assign pfs_excp     = excp_adef;
 assign pfs_excp_num = {1'b0, excp_adef, 14'b0};
 
 // IF stage
-assign fs_ready_go    = 1'b1;
-assign fs_allowin     = !fs_valid || fs_ready_go && ds_allowin;
+assign fs_ready_go    = ~flush || fs_excp;
+assign fs_allowin     = !fs_valid || fs_ready_go && ds_allowin || flush;
 assign fs_to_ds_valid =  fs_valid && fs_ready_go;
 
 always @(posedge clk) begin
-    if (reset || flush) begin
+    if (reset) begin
         fs_valid <= 1'b0;
     end
     else if (fs_allowin) begin
