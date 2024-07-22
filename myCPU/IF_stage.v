@@ -67,9 +67,7 @@ assign nextpc      = excp_flush ? eentry :
                      seq_pc;
 
 assign flush = excp_flush | ertn_flush;
-
-assign excp_adef   = nextpc[1:0] != 2'b00;
-
+assign excp_adef = nextpc[1:0] != 2'b00;
 assign pfs_excp     = excp_adef;
 assign pfs_excp_num = {1'b0, excp_adef, 14'b0};
 

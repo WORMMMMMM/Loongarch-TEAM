@@ -146,7 +146,7 @@ assign csr_wdata       = ds_to_es_bus_r[264:233];
 
 assign es_inst_load    = es_op_ld_b | es_op_ld_h | es_op_ld_w | es_op_ld_bu | es_op_ld_hu;
 
-//forward to DS
+// forward to DS
 assign es_forward [0] = es_valid;
 assign es_forward [1] = es_gr_we;
 assign es_forward [6:2] = es_dest;
@@ -173,18 +173,17 @@ alu u_alu(
     );
 
 /* --------------  MEM write interface  -------------- */
-
 assign es_addr00 = data_sram_addr[1:0] == 2'b00;
 assign es_addr01 = data_sram_addr[1:0] == 2'b01;
 assign es_addr10 = data_sram_addr[1:0] == 2'b10;
 assign es_addr11 = data_sram_addr[1:0] == 2'b11;
 assign data_sram_wstrb_sp= {4{es_op_st_b && es_addr00}} & 4'b0001 |
-                         {4{es_op_st_b && es_addr01}} & 4'b0010 |
-                         {4{es_op_st_b && es_addr10}} & 4'b0100 |
-                         {4{es_op_st_b && es_addr11}} & 4'b1000 |
-                         {4{es_op_st_h && es_addr00}} & 4'b0011 |
-                         {4{es_op_st_h && es_addr10}} & 4'b1100 |
-                         {4{es_op_st_w}}              & 4'b1111;
+                           {4{es_op_st_b && es_addr01}} & 4'b0010 |
+                           {4{es_op_st_b && es_addr10}} & 4'b0100 |
+                           {4{es_op_st_b && es_addr11}} & 4'b1000 |
+                           {4{es_op_st_h && es_addr00}} & 4'b0011 |
+                           {4{es_op_st_h && es_addr10}} & 4'b1100 |
+                           {4{es_op_st_w}}              & 4'b1111;
 
 assign data_sram_wstrb = es_mem_we ? data_sram_wstrb_sp : 4'h0;
 assign data_sram_wdata = {32{es_op_st_b}} & {4{es_rkd_value[ 7:0]}} |
@@ -196,13 +195,11 @@ assign data_sram_size  = {2{es_op_st_b || es_op_ld_b || es_op_ld_bu}} & 2'b00 |
                          {2{es_op_st_h || es_op_ld_h || es_op_ld_hu}} & 2'b01 |
                          {2{es_op_st_w || es_op_ld_w}}                & 2'b10;
 
-
 assign data_sram_en    = es_mem_en;
 assign data_sram_we    = es_mem_we && es_valid ? 4'hf : 4'h0;
 assign data_sram_addr  = es_alu_result;
 
-assign data_sram_req    = (es_res_from_mem || es_mem_we) && es_valid 
-                      && ms_allowin;
+assign data_sram_req   = (es_res_from_mem || es_mem_we) && es_valid && ms_allowin;
 
 assign flush = excp_flush | ertn_flush;
 assign excp_ale = (es_op_ld_h | es_op_st_h | es_op_ld_hu) & data_sram_addr[0] != 1'b0

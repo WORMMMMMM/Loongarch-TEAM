@@ -89,7 +89,7 @@ assign csr_num         = ms_to_ws_bus_r[103: 90];
 assign csr_wmask       = ms_to_ws_bus_r[135:104];
 assign csr_wdata       = ms_to_ws_bus_r[167:136];
 
-//forward to DS
+// forward to DS
 assign ws_forward [0] = ws_valid;
 assign ws_forward [1] = ws_gr_we;
 assign ws_forward [6:2] = ws_dest;

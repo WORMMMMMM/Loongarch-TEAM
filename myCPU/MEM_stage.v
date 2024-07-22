@@ -63,7 +63,7 @@ wire [15:0] mem_halfword_data;
 
 // SRAM data buffer
 reg  [32:0] data_sram_rdata_buf;
-reg        data_sram_rdata_buf_valid;
+reg         data_sram_rdata_buf_valid;
 wire [32:0] final_data_sram_rdata;
 
 wire data_sram_data_ok = 1'b1;
@@ -84,7 +84,7 @@ wire [31:0] csr_wdata;
 
 assign ms_ready_go    = 1'b1;
 assign ms_allowin     = !ms_valid || ms_ready_go && ws_allowin;
-assign ms_to_ws_valid = ms_valid && ms_ready_go;
+assign ms_to_ws_valid =  ms_valid && ms_ready_go;
 always @(posedge clk) begin
     if (reset) begin
         ms_valid <= 1'b0;
@@ -161,13 +161,13 @@ assign mem_byte_data = {8{addr00}} & final_data_sram_rdata[7:0]   |
                        {8{addr11}} & final_data_sram_rdata[31:24];
 
 // mem_halfword_data mux
-assign mem_halfword_data = {16{addr00}} & final_data_sram_rdata[15:0] |
+assign mem_halfword_data = {16{addr00}} & final_data_sram_rdata[15: 0] |
                            {16{addr10}} & final_data_sram_rdata[31:16];
 // mem_result mux
-assign mem_result = {32{ms_op_ld_w}}  & final_data_sram_rdata                                 |
-                    {32{ms_op_ld_b}}  & {{24{mem_byte_data[7]}}, mem_byte_data}         |
-                    {32{ms_op_ld_bu}} & {24'b0, mem_byte_data}                          |
-                    {32{ms_op_ld_h}}  & {{16{mem_halfword_data[15]}}, mem_halfword_data}|
+assign mem_result = {32{ms_op_ld_w}}  & final_data_sram_rdata                            |
+                    {32{ms_op_ld_b}}  & {{24{mem_byte_data[7]}}, mem_byte_data}          |
+                    {32{ms_op_ld_bu}} & {24'b0, mem_byte_data}                           |
+                    {32{ms_op_ld_h}}  & {{16{mem_halfword_data[15]}}, mem_halfword_data} |
                     {32{ms_op_ld_hu}} & {16'b0, mem_halfword_data};
 
 assign ms_final_result = ({32{ms_res_from_mem }} & mem_result       )  |
