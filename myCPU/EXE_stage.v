@@ -1,35 +1,39 @@
 `include "myCPU.h"
 
 module exe_stage(
-    input                          clk           ,
-    input                          reset         ,
+    input  clk,
+    input  reset,
+
     // allowin
-    input                          ms_allowin    ,
-    output                         es_allowin    ,
+    input  ms_allowin,
+    output es_allowin,
+
     // from ds
-    input                          ds_to_es_valid,
-    input  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus  ,
+    input  ds_to_es_valid,
+    input  [`DS_TO_ES_BUS_WD -1:0] ds_to_es_bus,
+
     // to ms
-    output                         es_to_ms_valid,
-    output [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus  ,
+    output es_to_ms_valid,
+    output [`ES_TO_MS_BUS_WD-1:0] es_to_ms_bus,
+
     // forward to ds
-    output [`ES_FORWARD_WD   -1:0] es_forward    ,
-    //mul div
-    output                         es_div_enable   ,
-    output                         es_mul_div_sign ,
-    output [31:0]                  es_rj_value     ,
-    output [31:0]                  es_rkd_value    ,
-    input                          div_complete    ,
+    output [`ES_FORWARD_WD-1:0] es_forward,
+
+    // mul div
+    output es_div_enable,
+    output es_mul_div_sign,
+    output [31:0] es_rj_value,
+    output [31:0] es_rkd_value,
+    input  div_complete,
     
-    output [ 3:0]                  data_sram_wstrb,
     // data sram interface
-    output                         data_sram_req  ,
-    output                         data_sram_en   ,
-    output [                  3:0] data_sram_we,
-    output [                 31:0] data_sram_addr ,
-    output [                 31:0] data_sram_wdata,
-    output [                  1:0] data_sram_size ,
-    input                          data_sram_addr_ok,
+    output        data_sram_req,
+    output [ 3:0] data_sram_wstrb,
+    output [ 1:0] data_sram_size,
+    output        data_sram_en,
+    output [ 3:0] data_sram_we,
+    output [31:0] data_sram_addr,
+    output [31:0] data_sram_wdata,
 
     input  excp_flush,
     input  ertn_flush

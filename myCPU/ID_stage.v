@@ -3,11 +3,15 @@
 module id_stage(
     input  clk,
     input  reset,
+
+    // allowin
     input  es_allowin,
     output ds_allowin,
+
     // from fs
     input  fs_to_ds_valid,
     input  [`FS_TO_DS_BUS_WD-1:0] fs_to_ds_bus,
+    
     // to es
     output ds_to_es_valid,
     output [`DS_TO_ES_BUS_WD-1:0] ds_to_es_bus,
@@ -27,26 +31,26 @@ reg  ds_valid;
 reg  [`FS_TO_DS_BUS_WD-1:0] fs_to_ds_bus_r;
 
 /* decode */
-wire [31: 0] pc;
-wire [31: 0] inst;
+wire [31:0] pc;
+wire [31:0] inst;
 
-wire [ 5: 0] op_31_26;
-wire [ 3: 0] op_25_22;
-wire [ 1: 0] op_21_20;
-wire [ 4: 0] op_19_15;
-wire [ 4: 0] rk;
-wire [ 4: 0] rj;
-wire [ 4: 0] rd;
-wire [ 4: 0] i5;
-wire [11: 0] i12;
-wire [15: 0] i16;
-wire [19: 0] i20;
-wire [25: 0] i26;
+wire [ 5:0] op_31_26;
+wire [ 3:0] op_25_22;
+wire [ 1:0] op_21_20;
+wire [ 4:0] op_19_15;
+wire [ 4:0] rk;
+wire [ 4:0] rj;
+wire [ 4:0] rd;
+wire [ 4:0] i5;
+wire [11:0] i12;
+wire [15:0] i16;
+wire [19:0] i20;
+wire [25:0] i26;
 
-wire [63: 0] op_31_26_d;
-wire [15: 0] op_25_22_d;
-wire [ 3: 0] op_21_20_d;
-wire [31: 0] op_19_15_d;
+wire [63:0] op_31_26_d;
+wire [15:0] op_25_22_d;
+wire [ 3:0] op_21_20_d;
+wire [31:0] op_19_15_d;
 
 /* instruction */
 wire inst_add_w;
@@ -118,26 +122,26 @@ wire need_si12;
 wire need_si20;
 wire need_offs16;
 wire need_offs26;
-wire [31: 0] imm;
+wire [31:0] imm;
 
 /* regfile */
 wire raddr1_op;
-wire [ 4: 0] rf_raddr1;
-wire [31: 0] rf_rdata1;
-wire [ 4: 0] rf_raddr2;
-wire [31: 0] rf_rdata2;
+wire [ 4:0] rf_raddr1;
+wire [31:0] rf_rdata1;
+wire [ 4:0] rf_raddr2;
+wire [31:0] rf_rdata2;
 wire rf_we;
-wire [ 4: 0] rf_waddr;
-wire [31: 0] rf_wdata;
-wire [31: 0] rkd_value;
-wire [31: 0] rj_value;
+wire [ 4:0] rf_waddr;
+wire [31:0] rf_wdata;
+wire [31:0] rkd_value;
+wire [31:0] rj_value;
 
 /* alu */
 wire src1_is_pc;
 wire src2_is_imm;
 wire src2_is_4;
-wire [18: 0] alu_op;
-wire [ 3: 0] mul_div_op;
+wire [18:0] alu_op;
+wire [ 3:0] mul_div_op;
 wire mul_div_sign;
 
 /* mem */
@@ -145,20 +149,20 @@ wire mem_en;
 wire mem_we;
 
 /* write back */
-wire [ 4: 0] dest;
+wire [ 4:0] dest;
 wire gr_we;
 wire res_from_mem;
 wire res_from_csr;
 
 /* branch */
 wire sign;
-wire [31: 0] result;
+wire [31:0] result;
 wire overflow;
 wire rj_eq_rd;
 wire rj_lt_rd;
 wire rj_ltu_rd;
 wire br_taken;
-wire [31: 0] br_target;
+wire [31:0] br_target;
 
 /* exception */
 wire flush;
@@ -168,9 +172,9 @@ wire excp_brk;
 wire excp_ine;
 
 wire fs_excp;
-wire [15: 0] fs_excp_num;
+wire [15:0] fs_excp_num;
 wire ds_excp;
-wire [15: 0] ds_excp_num;
+wire [15:0] ds_excp_num;
 
 /* csr */
 wire csr_we;
@@ -327,10 +331,10 @@ assign alu_op[12] = inst_andn;
 assign alu_op[13] = inst_orn;
 
 //div and mul
-assign mul_div_op[ 0] = inst_mul_w;
-assign mul_div_op[ 1] = inst_mulh_w | inst_mulh_wu;
-assign mul_div_op[ 2] = inst_div_w  | inst_div_wu;
-assign mul_div_op[ 3] = inst_mod_w  | inst_mod_wu;
+assign mul_div_op[0] = inst_mul_w;
+assign mul_div_op[1] = inst_mulh_w | inst_mulh_wu;
+assign mul_div_op[2] = inst_div_w  | inst_div_wu;
+assign mul_div_op[3] = inst_mod_w  | inst_mod_wu;
 assign mul_div_sign   = inst_mul_w | inst_mulh_w | inst_div_w | inst_mod_w;
 
 assign mem_en    = inst_mem;
@@ -386,9 +390,9 @@ assign csr_wdata = rkd_value;
 //signals from ES
 wire es_valid;
 wire es_gr_we;
-wire [ 4: 0] es_dest;
-wire [31: 0] es_alu_result;
-wire [31: 0] es_pc;
+wire [ 4:0] es_dest;
+wire [31:0] es_alu_result;
+wire [31:0] es_pc;
 wire es_inst_load;
 assign es_valid      = es_forward[0];
 assign es_gr_we      = es_forward[1];
@@ -400,10 +404,10 @@ assign es_inst_load  = es_forward[71];
 // signals from MS
 wire ms_valid;
 wire ms_gr_we;
-wire [ 4: 0] ms_dest;
-wire [31: 0] ms_final_result;
+wire [ 4:0] ms_dest;
+wire [31:0] ms_final_result;
 wire ms_res_from_mem;
-wire [31: 0] ms_pc;
+wire [31:0] ms_pc;
 assign ms_valid        = ms_forward[0];
 assign ms_gr_we        = ms_forward[1];
 assign ms_dest         = ms_forward[6:2];
@@ -414,9 +418,9 @@ assign ms_pc           = ms_forward[71:40];
 // signals from WS
 wire ws_valid;
 wire ws_gr_we;
-wire [ 4: 0] ws_dest;
-wire [31: 0] ws_final_result;
-wire [31: 0] ws_pc;
+wire [ 4:0] ws_dest;
+wire [31:0] ws_final_result;
+wire [31:0] ws_pc;
 assign ws_valid        = ws_forward[0];
 assign ws_gr_we        = ws_forward[1];
 assign ws_dest         = ws_forward[6:2];

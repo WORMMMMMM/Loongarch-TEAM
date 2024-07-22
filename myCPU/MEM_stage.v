@@ -1,25 +1,31 @@
 `include "myCPU.h"
 
 module mem_stage(
-    input                          clk           ,
-    input                          reset         ,
+    input  clk,
+    input  reset,
+
     // allowin
-    input                          ws_allowin    ,
-    output                         ms_allowin    ,
+    input  ws_allowin,
+    output ms_allowin,
+
     // from es
-    input                          es_to_ms_valid,
-    input  [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus  ,
+    input  es_to_ms_valid,
+    input  [`ES_TO_MS_BUS_WD-1:0] es_to_ms_bus,
+
     // to ws
-    output                         ms_to_ws_valid,
-    output [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus  ,
+    output ms_to_ws_valid,
+    output [`MS_TO_WS_BUS_WD-1:0] ms_to_ws_bus,
+
     // forward to ds
-    output [`MS_FORWARD_WD   -1:0] ms_forward    ,
-    //div    
-    input  [31:0]                  div_result    ,
-    input  [31:0]                  mod_result    ,
-    input  [63:0]                  mul_result    ,
-    //from data-sram
-    input  [31                 :0] data_sram_rdata
+    output [`MS_FORWARD_WD-1:0] ms_forward,
+
+    // div    
+    input  [31:0] div_result,
+    input  [31:0] mod_result,
+    input  [63:0] mul_result,
+
+    // from data-sram
+    input  [31:0] data_sram_rdata,
     
     input  excp_flush,
     input  ertn_flush

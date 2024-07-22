@@ -3,31 +3,35 @@
 module if_stage(
     input  clk,
     input  reset,
+
+    // allowin
     input  ds_allowin,
-    // from ws
-    input  [`WS_TO_FS_BUS_WD-1:0] ws_to_fs_bus,
+
     // to ds
     output fs_to_ds_valid,
     output [`FS_TO_DS_BUS_WD-1:0] fs_to_ds_bus,
+
     input  [`BR_BUS_WD-1:0] br_bus,
+
     input  excp_flush,
     input  ertn_flush,
     input  [31:0] era,
     input  [31:0] eentry,
+
     // inst sram interface
-    output        inst_sram_req  ,
+    output        inst_sram_req,
     output [ 3:0] inst_sram_wstrb,
     output [ 1:0] inst_sram_size,
-    output        inst_sram_en   ,
-    output [ 3:0] inst_sram_we  ,
-    output [31:0] inst_sram_addr ,
+    output        inst_sram_en,
+    output [ 3:0] inst_sram_we,
+    output [31:0] inst_sram_addr,
     output [31:0] inst_sram_wdata,
     input  [31:0] inst_sram_rdata
 );
 
 wire br_taken;
-// wire br_taken_r;
-wire br_stall;
+wire br_taken_r;
+// wire br_stall;
 wire [31:0] br_target;
 
 wire to_fs_valid;

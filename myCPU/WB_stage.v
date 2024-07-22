@@ -1,28 +1,31 @@
 `include "myCPU.h"
 
 module wb_stage(
-    input                           clk           ,
-    input                           reset         ,
-    //allowin
-    output                          ws_allowin    ,
-    //from ms
-    input                           ms_to_ws_valid,
-    input  [`MS_TO_WS_BUS_WD-1:0]  ms_to_ws_bus  ,
-    //to rf: for write back
-    output [`WB_BUS_WD-1:0]        ws_to_rf_bus  ,
-    output [`EX_BUS_WD-1:0]        ex_bus,
-    //forward to ds
-    output [`WS_FORWARD_WD-1:0]    ws_forward    ,
-    //trace debug interface
-    output [31:0] debug_wb_pc     ,
-    output [ 3:0] debug_wb_rf_we ,
-    output [ 4:0] debug_wb_rf_wnum,
-    output [31:0] debug_wb_rf_wdata,
+    input  clk,
+    input  reset,
+
+    // allowin
+    output ws_allowin,
+
+    // from ms
+    input  ms_to_ws_valid,
+    input  [`MS_TO_WS_BUS_WD-1:0] ms_to_ws_bus,
+
+    output [`WB_BUS_WD-1:0] wb_bus,
+
+    // forward to ds
+    output [`WS_FORWARD_WD-1:0] ws_forward,
 
     output excp_flush,
     output ertn_flush,
     output [31:0] era,
-    output [31:0] eentry
+    output [31:0] eentry,
+
+    // trace debug interface
+    output [31:0] debug_wb_pc,
+    output [ 3:0] debug_wb_rf_we,
+    output [ 4:0] debug_wb_rf_wnum,
+    output [31:0] debug_wb_rf_wdata
 );
 
 /* --------------  Signal interface -------------- */
@@ -149,8 +152,8 @@ assign rf_we    = ws_gr_we && ws_valid && ~ws_excp;
 assign rf_waddr = ws_dest;
 assign rf_wdata = ws_res_from_csr ? csr_rdata : ws_final_result;
 
-assign ws_to_rf_bus[31: 0] = rf_wdata;
-assign ws_to_rf_bus[36:32] = rf_waddr;
-assign ws_to_rf_bus[37:37] = rf_we;
+assign wb_bus[31: 0] = rf_wdata;
+assign wb_bus[36:32] = rf_waddr;
+assign wb_bus[37:37] = rf_we;
 
 endmodule
