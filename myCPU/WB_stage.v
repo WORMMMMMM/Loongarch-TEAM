@@ -28,34 +28,41 @@ module wb_stage(
     output [31:0] debug_wb_rf_wdata
 );
 
-/* --------------  Signal interface -------------- */
-// MS to WS bus
+/* handshaking */
+wire ws_ready_go;
+reg  ws_valid;
 reg [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus_r;
 
 wire [31:0] ws_pc;
-wire ws_gr_we;
+wire ws_ertn;
 wire [ 4:0] ws_dest;
-wire [31:0] ws_final_result;
+wire ws_gr_we;
 wire ws_res_from_csr;
+wire [31:0] ws_final_result;
 
-assign ws_pc           = ms_to_ws_bus_r[31: 0];
-assign ws_final_result = ms_to_ws_bus_r[63:32];
-assign ws_dest         = ms_to_ws_bus_r[68:64];
-assign ws_gr_we        = ms_to_ws_bus_r[69:69];
-assign ws_res_from_csr = ms_to_ws_bus_r[70:70];
+/* exception */
+wire ms_excp;
+wire ws_excp;
+wire [15:0] ms_excp_num;
+wire [15:0] ws_excp_num;
 
-//forward to DS
-assign ws_forward [0] = ws_valid;
-assign ws_forward [1] = ws_gr_we;
-assign ws_forward [6:2] = ws_dest;
-assign ws_forward [38:7] = ws_final_result;
-assign ws_forward [70:39] = ws_pc;
+/* csr */
+wire csr_we;
+wire [13:0] csr_num;
+wire [31:0] csr_wmask;
+wire [31:0] csr_wdata;
 
-/*----------------- Handshaking-----------------*/
-reg         ws_valid;
-wire        ws_ready_go;
+wire [5:0] csr_ecode;
+wire [2:0] csr_esubcode;
+
+/* write back */
+wire        rf_we;
+wire [4 :0] rf_waddr;
+wire [31:0] rf_wdata;
+
+
 assign ws_ready_go = 1'b1;
-assign ws_allowin  = !ws_valid || ws_ready_go;
+assign ws_allowin  = ~ws_valid | ws_ready_go;
 always @(posedge clk) begin
     if (reset) begin
         ws_valid <= 1'b0;
@@ -69,6 +76,25 @@ always @(posedge clk) begin
     end
 end
 
+assign ws_pc           = ms_to_ws_bus_r[ 31:  0];
+assign ws_ertn         = ms_to_ws_bus_r[ 32: 32];
+assign ws_dest         = ms_to_ws_bus_r[ 37: 33];
+assign ws_gr_we        = ms_to_ws_bus_r[ 38: 38];
+assign ws_res_from_csr = ms_to_ws_bus_r[ 39: 39];
+assign ws_final_result = ms_to_ws_bus_r[ 71: 40];
+assign ms_excp         = ms_to_ws_bus_r[ 72: 72];
+assign ms_excp_num     = ms_to_ws_bus_r[ 88: 73];
+assign csr_we          = ms_to_ws_bus_r[ 89: 89];
+assign csr_num         = ms_to_ws_bus_r[103: 90];
+assign csr_wmask       = ms_to_ws_bus_r[135:104];
+assign csr_wdata       = ms_to_ws_bus_r[167:136];
+
+//forward to DS
+assign ws_forward [0] = ws_valid;
+assign ws_forward [1] = ws_gr_we;
+assign ws_forward [6:2] = ws_dest;
+assign ws_forward [38:7] = ws_final_result;
+assign ws_forward [70:39] = ws_pc;
 
 // debug info generate
 assign debug_wb_pc       = ws_pc;
@@ -76,37 +102,15 @@ assign debug_wb_rf_we    = {4{rf_we}};
 assign debug_wb_rf_wnum  = ws_dest;
 assign debug_wb_rf_wdata = ws_final_result;
 
-
-/* exception */
-wire ms_excp;
-wire [15:0] ms_excp_num;
-wire ws_excp;
-wire [15:0] ws_excp_num;
-
-/* csr */
-wire csr_we;
-wire [13: 0] csr_num;
-wire [31: 0] csr_wmask;
-wire [31: 0] csr_wdata;
-
-wire [5:0] csr_ecode;
-wire [2:0] csr_esubcode;
-
-assign ms_excp     = ms_to_ws_bus_r[71:71];
-assign ms_excp_num = ms_to_ws_bus_r[87:72];
 assign ws_excp     = ms_excp;
 assign ws_excp_num = ms_excp_num;
 
 assign excp_flush = ws_valid & ws_excp;
 assign ertn_flush = ws_valid & ws_ertn;
 
-assign csr_we    = ms_to_ws_bus_r[ 88: 88];
-assign csr_num   = ms_to_ws_bus_r[102: 89];
-assign csr_wmask = ms_to_ws_bus_r[134:103];
-assign csr_wdata = ms_to_ws_bus_r[166:135];
 
 assign csr_ecode = ws_excp_num[15] ? `ECODE_INT :
-                   ws_excp_num[14] ? `ECODE_ADEF :
+                   ws_excp_num[14] ? `ECODE_ADE :
                    ws_excp_num[13] ? `ECODE_TLBR :
                    ws_excp_num[12] ? `ECODE_PIF :
                    ws_excp_num[11] ? `ECODE_PPI :
@@ -141,12 +145,8 @@ regcsr u_regcsr(
     .epc        (ws_pc       ),
 
     .era        (era         ),
-    .eentry     (eentry      ),
+    .eentry     (eentry      )
 );
-
-wire        rf_we;
-wire [4 :0] rf_waddr;
-wire [31:0] rf_wdata;
 
 assign rf_we    = ws_gr_we && ws_valid && ~ws_excp;
 assign rf_waddr = ws_dest;

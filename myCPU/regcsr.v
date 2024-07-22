@@ -17,7 +17,7 @@ module regcsr(
     input  [31: 0] epc,
 
     output [31: 0] era,
-    output [31: 0] eentry,
+    output [31: 0] eentry
 );
 
 reg  [31:0] csr_crmd;

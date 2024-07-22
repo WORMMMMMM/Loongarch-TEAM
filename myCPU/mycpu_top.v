@@ -52,38 +52,38 @@ module mycpu_top(
     output [31:0] debug_wb_rf_wdata
 );
 
-    wire         clk;
-    wire         resetn;
-    assign       clk = aclk;
-    assign       resetn = aresetn;
+wire         clk;
+wire         resetn;
+assign       clk = aclk;
+assign       resetn = aresetn;
 
-    wire         inst_sram_req;
-    wire  [ 3:0] inst_sram_wstrb;
-    wire  [31:0] inst_sram_addr;
-    wire  [31:0] inst_sram_wdata;
-    wire  [31:0] inst_sram_rdata;
-    wire  [ 1:0] inst_sram_size;
-    wire         inst_sram_addr_ok;
-    wire         inst_sram_data_ok;
-    wire         inst_sram_wr;
+wire         inst_sram_req;
+wire  [ 3:0] inst_sram_wstrb;
+wire  [31:0] inst_sram_addr;
+wire  [31:0] inst_sram_wdata;
+wire  [31:0] inst_sram_rdata;
+wire  [ 1:0] inst_sram_size;
+wire         inst_sram_addr_ok;
+wire         inst_sram_data_ok;
+wire         inst_sram_wr;
 
-    wire         data_sram_req;
-    wire  [ 3:0] data_sram_wstrb;
-    wire  [31:0] data_sram_addr;
-    wire  [31:0] data_sram_wdata;
-    wire  [31:0] data_sram_rdata;
-    wire  [ 1:0] data_sram_size;
-    wire         data_sram_addr_ok;
-    wire         data_sram_data_ok;
-    wire         data_sram_wr;
-    
-    
-    wire         inst_sram_en;
-    wire         data_sram_en;
-    assign       inst_sram_addr_ok = inst_sram_en;
-    assign       inst_sram_data_ok = inst_sram_en;
-    assign       data_sram_addr_ok = data_sram_en;
-    assign       data_sram_data_ok = data_sram_en;
+wire         data_sram_req;
+wire  [ 3:0] data_sram_wstrb;
+wire  [31:0] data_sram_addr;
+wire  [31:0] data_sram_wdata;
+wire  [31:0] data_sram_rdata;
+wire  [ 1:0] data_sram_size;
+wire         data_sram_addr_ok;
+wire         data_sram_data_ok;
+wire         data_sram_wr;
+
+
+wire         inst_sram_en;
+wire         data_sram_en;
+assign       inst_sram_addr_ok = inst_sram_en;
+assign       inst_sram_data_ok = inst_sram_en;
+assign       data_sram_addr_ok = data_sram_en;
+assign       data_sram_data_ok = data_sram_en;
 
 axi_bridge axi_bridge(
 
@@ -153,7 +153,6 @@ axi_bridge axi_bridge(
 );
 
 
-
 cpu_core cpu_core(
     .clk               (clk              ),
     .resetn            (resetn           ),
@@ -179,7 +178,7 @@ cpu_core cpu_core(
     .data_sram_we      (data_sram_wr     ),
     // trace debug interface
     .debug_wb_pc       (debug_wb_pc      ),
-    .debug_wb_rf_we   (debug_wb_rf_we  ),
+    .debug_wb_rf_we    (debug_wb_rf_we   ),
     .debug_wb_rf_wnum  (debug_wb_rf_wnum ),
     .debug_wb_rf_wdata (debug_wb_rf_wdata)
 );

@@ -46,13 +46,11 @@ reg  [31: 0] fs_pc;
 wire [31: 0] fs_inst;
 
 wire flush;
-
 wire excp_int;
 wire excp_adef;
-
 wire pfs_excp;
-wire [15: 0] pfs_excp_num;
 wire fs_excp;
+wire [15: 0] pfs_excp_num;
 wire [15: 0] fs_excp_num;
 
 assign inst_sram_req   = fs_allowin; //req
