@@ -23,7 +23,8 @@ module id_stage(
     input  [`WS_FORWARD_WD-1:0] ws_forward,
 
     input  excp_flush,
-    input  ertn_flush
+    input  ertn_flush,
+    input  has_int
 );
 
 /* handshaking */
@@ -376,8 +377,8 @@ assign excp_ine = ~inst_add_w & ~inst_sub_w & ~inst_slt & ~inst_sltu
                 & ~inst_jirl & ~inst_b & ~inst_bl & ~inst_beq & ~inst_bne & ~inst_blt & ~inst_bge & ~inst_bltu & ~inst_bgeu
                 & ~inst_lu12i_w & ~inst_pcaddu12i
                 & ~inst_rdcntid & ~inst_rdcntvl_w & ~inst_rdcntvh_w & ~inst_break & ~inst_syscall & ~inst_csrrd & ~inst_csrwr & ~inst_csrxchg & ~inst_ertn;
-assign ds_excp     = fs_excp | excp_sys | excp_brk | excp_ine;
-assign ds_excp_num = fs_excp_num | {5'b0, excp_sys, excp_brk, excp_ine, 8'b0};
+assign ds_excp     = fs_excp | excp_sys | excp_brk | excp_ine | has_int;
+assign ds_excp_num = fs_excp_num | {has_int, 4'b0, excp_sys, excp_brk, excp_ine, 8'b0};
 
 assign csr_we    = inst_csrwr | inst_csrxchg;
 assign csr_num   = inst[23:10];

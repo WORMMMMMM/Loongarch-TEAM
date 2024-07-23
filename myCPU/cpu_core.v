@@ -4,6 +4,7 @@
 module cpu_core(
     input         clk,
     input         resetn,
+    input  [ 7:0] interrupt,
 
     // inst sram interface
     output        inst_sram_req,
@@ -71,6 +72,8 @@ wire ertn_flush;
 wire [31:0] era;
 wire [31:0] eentry;
 
+wire has_int;
+
 
 if_stage if_stage(
     .clk             (clk            ),
@@ -89,6 +92,7 @@ if_stage if_stage(
     .ertn_flush      (ertn_flush     ),
     .era             (era            ),
     .eentry          (eentry         ),
+    .has_int         (has_int        ),
 
     // inst sram interface
     .inst_sram_req   (inst_sram_req  ),
@@ -125,6 +129,7 @@ id_stage id_stage(
 
     .excp_flush     (excp_flush    ),
     .ertn_flush     (ertn_flush    ),
+    .has_int        (has_int       )
 );
 
 exe_stage exe_stage(
@@ -238,6 +243,9 @@ wb_stage wb_stage(
     .ertn_flush        (ertn_flush       ),
     .era               (era              ),
     .eentry            (eentry           ),
+
+    .interrupt          (interrupt         ),
+    .has_int           (has_int          ),
 
     // trace debug interface
     .debug_wb_pc       (debug_wb_pc      ),

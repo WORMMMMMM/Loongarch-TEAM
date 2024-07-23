@@ -17,6 +17,7 @@ module if_stage(
     input  ertn_flush,
     input  [31:0] era,
     input  [31:0] eentry,
+    input  has_int,
 
     // inst sram interface
     output        inst_sram_req,

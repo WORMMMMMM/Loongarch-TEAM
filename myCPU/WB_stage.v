@@ -20,6 +20,9 @@ module wb_stage(
     output ertn_flush,
     output [31:0] era,
     output [31:0] eentry,
+    
+    input  [ 7:0] interrupt,
+    output has_int,
 
     // trace debug interface
     output [31:0] debug_wb_pc,
@@ -145,7 +148,10 @@ regcsr u_regcsr(
     .epc        (ws_pc       ),
 
     .era        (era         ),
-    .eentry     (eentry      )
+    .eentry     (eentry      ),
+
+    .interrupt   (interrupt    ),
+    .has_int    (has_int     )
 );
 
 assign rf_we    = ws_gr_we && ws_valid && ~ws_excp;
