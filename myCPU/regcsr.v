@@ -79,27 +79,27 @@ assign csr_ticlr_we  = csr_we && csr_num == `CSR_TICLR;
 
 always @(posedge clk) begin
     if (reset) begin
-        csr_crmd[ `CSR_CRMD_PLV] <= 2'b0;
-        csr_crmd[  `CSR_CRMD_IE] <= 1'b0;
-        csr_crmd[  `CSR_CRMD_DA] <= 1'b1;
-        csr_crmd[  `CSR_CRMD_PG] <= 1'b0;
+        csr_crmd[`CSR_CRMD_PLV ] <= 2'b0;
+        csr_crmd[`CSR_CRMD_IE  ] <= 1'b0;
+        csr_crmd[`CSR_CRMD_DA  ] <= 1'b1;
+        csr_crmd[`CSR_CRMD_PG  ] <= 1'b0;
         csr_crmd[`CSR_CRMD_DATF] <= 2'b0;
         csr_crmd[`CSR_CRMD_DATM] <= 2'b0;
         csr_crmd[31: 9] <= 23'b0;
     end
     else if (excp_flush) begin
         csr_crmd[`CSR_CRMD_PLV] <= 2'b0;
-        csr_crmd[ `CSR_CRMD_IE] <= 1'b0;
+        csr_crmd[`CSR_CRMD_IE ] <= 1'b0;
     end
     else if (ertn_flush) begin
         csr_crmd[`CSR_CRMD_PLV] <= csr_prmd[`CSR_PRMD_PPLV];
-        csr_crmd[ `CSR_CRMD_IE] <= csr_prmd[ `CSR_PRMD_PIE];
+        csr_crmd[`CSR_CRMD_IE ] <= csr_prmd[`CSR_PRMD_PIE ];
     end
     else if (csr_crmd_we) begin
-        csr_crmd[ `CSR_CRMD_PLV] <= csr_wmask[ `CSR_CRMD_PLV] & csr_wdata[ `CSR_CRMD_PLV] | ~csr_wmask[ `CSR_CRMD_PLV] & csr_crmd[ `CSR_CRMD_PLV];
-        csr_crmd[  `CSR_CRMD_IE] <= csr_wmask[  `CSR_CRMD_IE] & csr_wdata[  `CSR_CRMD_IE] | ~csr_wmask[  `CSR_CRMD_IE] & csr_crmd[  `CSR_CRMD_IE];
-        csr_crmd[  `CSR_CRMD_DA] <= csr_wmask[  `CSR_CRMD_DA] & csr_wdata[  `CSR_CRMD_DA] | ~csr_wmask[  `CSR_CRMD_DA] & csr_crmd[  `CSR_CRMD_DA];
-        csr_crmd[  `CSR_CRMD_PG] <= csr_wmask[  `CSR_CRMD_PG] & csr_wdata[  `CSR_CRMD_PG] | ~csr_wmask[  `CSR_CRMD_PG] & csr_crmd[  `CSR_CRMD_PG];
+        csr_crmd[`CSR_CRMD_PLV ] <= csr_wmask[ `CSR_CRMD_PLV] & csr_wdata[ `CSR_CRMD_PLV] | ~csr_wmask[ `CSR_CRMD_PLV] & csr_crmd[ `CSR_CRMD_PLV];
+        csr_crmd[`CSR_CRMD_IE  ] <= csr_wmask[`CSR_CRMD_IE  ] & csr_wdata[`CSR_CRMD_IE  ] | ~csr_wmask[`CSR_CRMD_IE  ] & csr_crmd[`CSR_CRMD_IE  ];
+        csr_crmd[`CSR_CRMD_DA  ] <= csr_wmask[`CSR_CRMD_DA  ] & csr_wdata[`CSR_CRMD_DA  ] | ~csr_wmask[`CSR_CRMD_DA  ] & csr_crmd[`CSR_CRMD_DA  ];
+        csr_crmd[`CSR_CRMD_PG  ] <= csr_wmask[`CSR_CRMD_PG  ] & csr_wdata[`CSR_CRMD_PG  ] | ~csr_wmask[`CSR_CRMD_PG  ] & csr_crmd[`CSR_CRMD_PG  ];
         csr_crmd[`CSR_CRMD_DATF] <= csr_wmask[`CSR_CRMD_DATF] & csr_wdata[`CSR_CRMD_DATF] | ~csr_wmask[`CSR_CRMD_DATF] & csr_crmd[`CSR_CRMD_DATF];
         csr_crmd[`CSR_CRMD_DATM] <= csr_wmask[`CSR_CRMD_DATM] & csr_wdata[`CSR_CRMD_DATM] | ~csr_wmask[`CSR_CRMD_DATM] & csr_crmd[`CSR_CRMD_DATM];
     end
@@ -111,11 +111,11 @@ always @(posedge clk) begin
     end
     else if (excp_flush) begin
         csr_prmd[`CSR_PRMD_PPLV] <= csr_crmd[`CSR_CRMD_PLV];
-        csr_prmd[ `CSR_PRMD_PIE] <= csr_crmd[ `CSR_CRMD_IE];
+        csr_prmd[`CSR_PRMD_PIE ] <= csr_crmd[`CSR_CRMD_IE ];
     end
     else if (csr_prmd_we) begin
         csr_prmd[`CSR_PRMD_PPLV] <= csr_wmask[`CSR_PRMD_PPLV] & csr_wdata[`CSR_PRMD_PPLV] | ~csr_wmask[`CSR_PRMD_PPLV] & csr_prmd[`CSR_PRMD_PPLV];
-        csr_prmd[ `CSR_PRMD_PIE] <= csr_wmask[ `CSR_PRMD_PIE] & csr_wdata[ `CSR_PRMD_PIE] | ~csr_wmask[ `CSR_PRMD_PIE] & csr_prmd[ `CSR_PRMD_PIE];
+        csr_prmd[`CSR_PRMD_PIE ] <= csr_wmask[`CSR_PRMD_PIE ] & csr_wdata[`CSR_PRMD_PIE ] | ~csr_wmask[`CSR_PRMD_PIE ] & csr_prmd[`CSR_PRMD_PIE ];
     end
 end
 
@@ -212,8 +212,8 @@ always @(posedge clk) begin
         csr_tcfg[`CSR_TCFG_EN] <= 1'b0;
     end
     else if (csr_tcfg_we) begin
-        csr_tcfg[   `CSR_TCFG_EN] <= csr_wmask[   `CSR_TCFG_EN] & csr_wdata[   `CSR_TCFG_EN] | ~csr_wmask[   `CSR_TCFG_EN] & csr_tcfg[   `CSR_TCFG_EN];
-        csr_tcfg[  `CSR_TCFG_PER] <= csr_wmask[  `CSR_TCFG_PER] & csr_wdata[  `CSR_TCFG_PER] | ~csr_wmask[  `CSR_TCFG_PER] & csr_tcfg[  `CSR_TCFG_PER];
+        csr_tcfg[`CSR_TCFG_EN   ] <= csr_wmask[`CSR_TCFG_EN   ] & csr_wdata[`CSR_TCFG_EN   ] | ~csr_wmask[`CSR_TCFG_EN   ] & csr_tcfg[`CSR_TCFG_EN   ];
+        csr_tcfg[`CSR_TCFG_PER  ] <= csr_wmask[`CSR_TCFG_PER  ] & csr_wdata[`CSR_TCFG_PER  ] | ~csr_wmask[`CSR_TCFG_PER  ] & csr_tcfg[`CSR_TCFG_PER  ];
         csr_tcfg[`CSR_TCFG_INITV] <= csr_wmask[`CSR_TCFG_INITV] & csr_wdata[`CSR_TCFG_INITV] | ~csr_wmask[`CSR_TCFG_INITV] & csr_tcfg[`CSR_TCFG_INITV];
     end
 end
