@@ -18,13 +18,13 @@ module cpu_core(
 
     // data sram interface
     output        data_sram_req,
+    output [ 3:0] data_sram_wstrb,
+    output [ 1:0] data_sram_size,
     output        data_sram_en,
     output [ 3:0] data_sram_we,
-    output [ 1:0] data_sram_size,
     output [31:0] data_sram_addr,
     output [31:0] data_sram_wdata,
     input  [31:0] data_sram_rdata,
-    output [ 3:0] data_sram_wstrb,
     
     // trace debug interface
     output [31:0] debug_wb_pc,
@@ -94,7 +94,6 @@ if_stage if_stage(
     .ertn_flush      (ertn_flush     ),
     .era             (era            ),
     .eentry          (eentry         ),
-    .has_int         (has_int        ),
 
     // inst sram interface
     .inst_sram_req   (inst_sram_req  ),

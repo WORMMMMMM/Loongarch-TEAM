@@ -170,6 +170,7 @@ wire [31:0] br_target;
 
 /* exception */
 wire flush;
+wire excp_int;
 wire excp_sys;
 wire excp_brk;
 wire excp_ine;
@@ -184,8 +185,14 @@ wire [13:0] csr_num;
 wire [31:0] csr_wmask;
 wire [31:0] csr_wdata;
 
-assign ds_allowin     = !ds_valid || ds_ready_go && es_allowin;
-assign ds_to_es_valid =  ds_valid && ds_ready_go;
+
+assign ds_ready_go_r  = !(es_valid && es_inst_load && (raw_ed_1 || raw_ed_2))
+                     || !flush;
+assign ds_ready_go    = (ds_ready_go_r === 1'bx) ? 1'b1 : ds_ready_go_r;
+assign ds_allowin     = !ds_valid
+                     || ds_ready_go && es_allowin
+                     || flush;
+assign ds_to_es_valid = ds_valid && ds_ready_go;
 always @(posedge clk) begin
     if (reset)
         ds_valid <= 1'b0;
@@ -278,7 +285,7 @@ assign inst_syscall   = op_31_26_d[6'h00] & op_25_22_d[4'h0] & op_21_20_d[2'h2] 
 assign inst_csrrd     = op_31_26_d[6'h01] & ~inst[25] & ~inst[24] & (rj == 5'b0);
 assign inst_csrwr     = op_31_26_d[6'h01] & ~inst[25] & ~inst[24] & (rj == 5'b1);
 assign inst_csrxchg   = op_31_26_d[6'h01] & ~inst[25] & ~inst[24] & ~inst_csrrd & ~inst_csrwr;
-assign inst_ertn      = op_31_26_d[6'h01] & op_25_22_d[4'h9] & op_21_20_d[2'h0] & op_19_15_d[5'h10] & op_14_10_d[5'h0e] & (rj == 5'b0) & (rd == 5'b0);
+assign inst_ertn      = op_31_26_d[6'h01] & op_25_22_d[4'h9] & op_21_20_d[2'h0] & op_19_15_d[5'h10] & (rk == 5'h0e) & (rj == 5'h00) & (rd == 5'h00);
 
 assign need_ui5    = inst_slli_w | inst_srli_w | inst_srai_w;
 assign need_ui12   = inst_andi | inst_ori | inst_xori;
@@ -370,6 +377,7 @@ assign br_bus[32:32] = br_taken;
 assign br_bus[31: 0] = br_target;
 
 assign flush = excp_flush | ertn_flush;
+assign excp_int = has_int;
 assign excp_sys = inst_syscall;
 assign excp_brk = inst_break;
 assign excp_ine = ~inst_add_w & ~inst_sub_w & ~inst_slt & ~inst_sltu & ~inst_nor & ~inst_and & ~inst_or & ~inst_xor & ~inst_sll_w & ~inst_srl_w & ~inst_sra_w
@@ -378,8 +386,8 @@ assign excp_ine = ~inst_add_w & ~inst_sub_w & ~inst_slt & ~inst_sltu & ~inst_nor
                 & ~inst_ld_b & ~inst_ld_h & ~inst_ld_w & ~inst_st_b & ~inst_st_h & ~inst_st_w & ~inst_ld_bu & ~inst_ld_hu
                 & ~inst_jirl & ~inst_b & ~inst_bl & ~inst_beq & ~inst_bne & ~inst_blt & ~inst_bge & ~inst_bltu & ~inst_bgeu & ~inst_lu12i_w & ~inst_pcaddu12i
                 & ~inst_rdcntid & ~inst_rdcntvl_w & ~inst_rdcntvh_w & ~inst_break & ~inst_syscall & ~inst_csrrd & ~inst_csrwr & ~inst_csrxchg & ~inst_ertn;
-assign ds_excp     = fs_excp | excp_sys | excp_brk | excp_ine | has_int;
-assign ds_excp_num = fs_excp_num | {has_int, 4'b0, excp_sys, excp_brk, excp_ine, 8'b0};
+assign ds_excp     = fs_excp | excp_int | excp_sys | excp_brk | excp_ine;
+assign ds_excp_num = fs_excp_num | {excp_int, 4'b0, excp_sys, excp_brk, excp_ine, 8'b0};
 
 assign csr_we    = inst_csrwr | inst_csrxchg;
 assign csr_num   = inst_rdcntid ? `CSR_TID : inst[23:10];
@@ -435,9 +443,6 @@ wire raw_md_1;
 wire raw_md_2;
 wire raw_wd_1;
 wire raw_wd_2;
-
-assign ds_ready_go_r = ~(es_valid & es_inst_load & (raw_ed_1 | raw_ed_2));
-assign ds_ready_go   = (ds_ready_go_r === 1'bx) ? 1'b1 : ds_ready_go_r;
 
 assign no_src1 = inst_b | inst_bl | inst_pcaddu12i | inst_rdcntvl_w | inst_rdcntvh_w | inst_rdcntid | inst_csrrd | inst_csrwr | inst_csrxchg;
 assign no_src2 = inst_slli_w | inst_srli_w | inst_srai_w | inst_slti | inst_sltui | inst_addi_w | inst_andi | inst_ori | inst_xori

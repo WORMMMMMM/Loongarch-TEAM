@@ -84,9 +84,11 @@ wire [31:0] csr_wmask;
 wire [31:0] csr_wdata;
 
 
-assign ms_ready_go    = 1'b1;
-assign ms_allowin     = !ms_valid || ms_ready_go && ws_allowin;
-assign ms_to_ws_valid =  ms_valid && ms_ready_go;
+assign ms_ready_go    = !flush;
+assign ms_allowin     = !ms_valid
+                     || ms_ready_go && ws_allowin
+                     || flush;
+assign ms_to_ws_valid = ms_valid && ms_ready_go;
 always @(posedge clk) begin
     if (reset) begin
         ms_valid <= 1'b0;

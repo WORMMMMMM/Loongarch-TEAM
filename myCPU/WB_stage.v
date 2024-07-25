@@ -66,7 +66,8 @@ wire [31:0] rf_wdata;
 
 
 assign ws_ready_go = 1'b1;
-assign ws_allowin  = ~ws_valid | ws_ready_go;
+assign ws_allowin  = !ws_valid
+                   || ws_ready_go;
 always @(posedge clk) begin
     if (reset) begin
         ws_valid <= 1'b0;
@@ -142,7 +143,7 @@ regcsr u_regcsr(
     .csr_wdata   (csr_wdata   ),
     .csr_rdata   (csr_rdata   ),
 
-    .excp_flush (excp_flush  ),
+    .excp_flush  (excp_flush  ),
     .ertn_flush  (ertn_flush  ),
     .ecode       (csr_ecode   ),
     .esubcode    (csr_esubcode),

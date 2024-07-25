@@ -102,9 +102,12 @@ wire [31:0] csr_wmask;
 wire [31:0] csr_wdata;
 
 
-assign es_ready_go    = !es_div_stall;
-assign es_allowin     = !es_valid || es_ready_go && ms_allowin;
-assign es_to_ms_valid =  es_valid && es_ready_go;
+assign es_ready_go    = !es_div_stall
+                     || !flush;
+assign es_allowin     = !es_valid
+                     || es_ready_go && ms_allowin
+                     || flush;
+assign es_to_ms_valid = es_valid && es_ready_go;
 always @(posedge clk) begin
     if (reset) begin
         es_valid <= 1'b0;
@@ -221,8 +224,8 @@ always @(posedge clk) begin
         timer <= timer + 64'h1;
     end
 end
-assign timer_value = inst_rdcntvl_w ? timer[31: 0] :
-                     inst_rdcntvh_w ? timer[63:32] :
+assign timer_value = es_op_rdcntvl_w ? timer[31: 0] :
+                     es_op_rdcntvh_w ? timer[63:32] :
                      32'h0;
 
 assign flush = excp_flush | ertn_flush;

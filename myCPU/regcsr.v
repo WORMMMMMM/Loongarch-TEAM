@@ -1,4 +1,4 @@
-`include "myCPU.v"
+`include "myCPU.h"
 
 module regcsr(
     input  clk,
@@ -55,7 +55,7 @@ wire csr_tid_we;
 wire csr_tcfg_we;
 wire csr_ticlr_we;
 
-wire next_tcfg;
+wire [31:0] next_tcfg;
 
 wire hard_int;
 wire soft_int;
