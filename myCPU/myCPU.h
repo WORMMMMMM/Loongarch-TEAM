@@ -3,8 +3,8 @@
 
     /* bus */
     `define FS_TO_DS_BUS_WD 81
-    `define DS_TO_ES_BUS_WD 265
-    `define ES_TO_MS_BUS_WD 184
+    `define DS_TO_ES_BUS_WD 268
+    `define ES_TO_MS_BUS_WD 217
     `define MS_TO_WS_BUS_WD 168
 
     `define BR_BUS_WD 33
@@ -61,6 +61,5 @@
     `define CSR_TCFG_EN     0
     `define CSR_TCFG_PER    1
     `define CSR_TCFG_INITV  31:2
-    `define CSR_TICLR_CLR   0
 
 `endif

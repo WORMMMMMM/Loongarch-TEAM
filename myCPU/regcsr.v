@@ -19,7 +19,8 @@ module regcsr(
     output [31:0] era,
     output [31:0] eentry,
 
-    input  [ 7:0] interrupt,
+    input  [ 7:0] hard_int_in,
+    input         ipi_int_in,
     output has_int
 );
 
@@ -136,13 +137,24 @@ always @(posedge clk) begin
         csr_estat[31:31] <= 1'b0;
     end
     else begin
-        csr_estat[ 9: 2] <= interrupt;
+        csr_estat[ 9: 2] <= hard_int_in;
+        csr_estat[12:12] <= ipi_int_in;
+
+        if (csr_estat_we) begin
+            csr_estat[ 1: 0] <= csr_wmask[ 1: 0] & csr_wdata[ 1: 0] | ~csr_wmask[ 1: 0] & csr_estat[ 1: 0];
+        end
+
+        if (csr_ticlr_we && (csr_wmask[0] & csr_wdata[0])) begin
+            csr_estat[11:11] <= 1'b0;
+        end
+        else if (csr_tcfg[`CSR_TCFG_EN] && csr_tval == 32'h0) begin
+            csr_estat[11:11] <= 1'b1;
+            csr_tcfg[`CSR_TCFG_EN] <= csr_tcfg[`CSR_TCFG_PER];
+        end
+
         if (excp_flush) begin
             csr_estat[`CSR_ESTAT_ECODE] <= ecode;
             csr_estat[`CSR_ESTAT_ESUBC] <= esubcode;
-        end
-        else if (csr_estat_we) begin
-            csr_estat[ 1: 0] <= csr_Wmask[ 1: 0] & csr_wdata[ 1: 0] | ~csr_wmask[ 1: 0] & csr_estat[ 1: 0];
         end
     end
 end
@@ -211,7 +223,7 @@ always @(posedge clk) begin
         csr_tval <= {next_tcfg[`CSR_TCFG_INITV], 2'b0};
     end
     else if (csr_tcfg[`CSR_TCFG_EN]) begin
-        if (csr_tval == 32'b0 && csr_tcfg[`CSR_TCFG_PER]) begin
+        if (csr_tval == 32'b0) begin
             csr_tval <= {csr_tcfg[`CSR_TCFG_INITV], 2'b0};
         end
         else if (csr_tval != 32'b0) begin
@@ -238,7 +250,11 @@ assign csr_rdata = {32{csr_num == `CSR_CRMD  }} & csr_crmd
                  | {32{csr_num == `CSR_SAVE0 }} & csr_save0
                  | {32{csr_num == `CSR_SAVE1 }} & csr_save1
                  | {32{csr_num == `CSR_SAVE2 }} & csr_save2
-                 | {32{csr_num == `CSR_SAVE3 }} & csr_save3;
+                 | {32{csr_num == `CSR_SAVE3 }} & csr_save3
+                 | {32{csr_num == `CSR_TID   }} & csr_tid
+                 | {32{csr_num == `CSR_TCFG  }} & csr_tcfg
+                 | {32{csr_num == `CSR_TVAL  }} & csr_tval
+                 | {32{csr_num == `CSR_TICLR }} & csr_ticlr;
 
 assign era    = csr_era;
 assign eentry = csr_eentry;

@@ -154,6 +154,7 @@ wire mem_we;
 /* write back */
 wire [ 4:0] dest;
 wire gr_we;
+wire res_from_cnt;
 wire res_from_mem;
 wire res_from_csr;
 
@@ -343,8 +344,11 @@ assign mul_div_sign  = inst_mul_w | inst_mulh_w | inst_div_w | inst_mod_w;
 assign mem_en = inst_mem;
 assign mem_we = inst_st_b | inst_st_h | inst_st_w;
 
-assign dest  = inst_bl ? 5'h01 : rd;
-assign gr_we = ~inst_st_w & ~inst_st_b & ~inst_st_h & ~inst_b & ~inst_br & ~inst_ertn;
+assign dest  = inst_bl      ? 5'h01 :
+               inst_rdcntid ? rj:
+               rd;
+assign gr_we = ~inst_st_w & ~inst_st_b & ~inst_st_h & ~inst_b & ~inst_br & ~inst_syscall & ~inst_ertn;
+assign res_from_cnt = inst_rdcntvl_w | inst_rdcntvh_w;
 assign res_from_mem = inst_ld_b | inst_ld_h | inst_ld_w | inst_ld_bu | inst_ld_hu;
 assign res_from_csr = inst_csrrd | inst_csrwr | inst_csrxchg;
 
@@ -368,20 +372,17 @@ assign br_bus[31: 0] = br_target;
 assign flush = excp_flush | ertn_flush;
 assign excp_sys = inst_syscall;
 assign excp_brk = inst_break;
-assign excp_ine = ~inst_add_w & ~inst_sub_w & ~inst_slt & ~inst_sltu
-                & ~inst_nor & ~inst_and & ~inst_or & ~inst_xor
-                & ~inst_sll_w & ~inst_srl_w & ~inst_sra_w
+assign excp_ine = ~inst_add_w & ~inst_sub_w & ~inst_slt & ~inst_sltu & ~inst_nor & ~inst_and & ~inst_or & ~inst_xor & ~inst_sll_w & ~inst_srl_w & ~inst_sra_w
                 & ~inst_mul_w & ~inst_mulh_w & ~inst_mulh_wu & ~inst_div_w & ~inst_mod_w & ~inst_div_wu & ~inst_mod_wu
                 & ~inst_slli_w & ~inst_srli_w & ~inst_srai_w & ~inst_slti & ~inst_sltui & ~inst_addi_w & ~inst_andi & ~inst_ori & ~inst_xori
                 & ~inst_ld_b & ~inst_ld_h & ~inst_ld_w & ~inst_st_b & ~inst_st_h & ~inst_st_w & ~inst_ld_bu & ~inst_ld_hu
-                & ~inst_jirl & ~inst_b & ~inst_bl & ~inst_beq & ~inst_bne & ~inst_blt & ~inst_bge & ~inst_bltu & ~inst_bgeu
-                & ~inst_lu12i_w & ~inst_pcaddu12i
+                & ~inst_jirl & ~inst_b & ~inst_bl & ~inst_beq & ~inst_bne & ~inst_blt & ~inst_bge & ~inst_bltu & ~inst_bgeu & ~inst_lu12i_w & ~inst_pcaddu12i
                 & ~inst_rdcntid & ~inst_rdcntvl_w & ~inst_rdcntvh_w & ~inst_break & ~inst_syscall & ~inst_csrrd & ~inst_csrwr & ~inst_csrxchg & ~inst_ertn;
 assign ds_excp     = fs_excp | excp_sys | excp_brk | excp_ine | has_int;
 assign ds_excp_num = fs_excp_num | {has_int, 4'b0, excp_sys, excp_brk, excp_ine, 8'b0};
 
 assign csr_we    = inst_csrwr | inst_csrxchg;
-assign csr_num   = inst[23:10];
+assign csr_num   = inst_rdcntid ? `CSR_TID : inst[23:10];
 assign csr_wmask = inst_csrxchg ? rj_value : 32'hffffffff;
 assign csr_wdata = rkd_value;
 
@@ -480,36 +481,42 @@ assign rkd_value= raw_ed_2 ? es_alu_result :
                  raw_md_2 ? ms_final_result :
                  raw_wd_2 ? ws_final_result : rf_rdata1;
 
-assign ds_to_es_bus[ 31:  0] = pc;
-assign ds_to_es_bus[ 32: 32] = inst_ld_b;
-assign ds_to_es_bus[ 33: 33] = inst_ld_h;
-assign ds_to_es_bus[ 34: 34] = inst_ld_w;
-assign ds_to_es_bus[ 35: 35] = inst_st_b;
-assign ds_to_es_bus[ 36: 36] = inst_st_h;
-assign ds_to_es_bus[ 37: 37] = inst_st_w;
-assign ds_to_es_bus[ 38: 38] = inst_ld_bu;
-assign ds_to_es_bus[ 39: 39] = inst_ld_hu;
-assign ds_to_es_bus[ 40: 40] = inst_ertn;
-assign ds_to_es_bus[ 72: 41] = imm;
-assign ds_to_es_bus[104: 73] = rkd_value;
-assign ds_to_es_bus[136:105] = rj_value;
-assign ds_to_es_bus[137:137] = src1_is_pc;
-assign ds_to_es_bus[138:138] = src2_is_imm;
-assign ds_to_es_bus[139:139] = src2_is_4;
-assign ds_to_es_bus[153:140] = alu_op;
-assign ds_to_es_bus[154:154] = mem_en;
-assign ds_to_es_bus[155:155] = mem_we;
-assign ds_to_es_bus[160:156] = dest;
-assign ds_to_es_bus[161:161] = gr_we;
-assign ds_to_es_bus[162:162] = res_from_mem;
-assign ds_to_es_bus[163:163] = res_from_csr;
-assign ds_to_es_bus[167:164] = mul_div_op;
-assign ds_to_es_bus[168:168] = mul_div_sign;
-assign ds_to_es_bus[169:169] = ds_excp;
-assign ds_to_es_bus[185:170] = ds_excp_num;
-assign ds_to_es_bus[186:186] = csr_we;
-assign ds_to_es_bus[200:187] = csr_num;
-assign ds_to_es_bus[232:201] = csr_wmask;
-assign ds_to_es_bus[264:233] = csr_wdata;
+assign ds_to_es_bus =
+{
+    pc,
+    inst_ld_b,
+    inst_ld_h,
+    inst_ld_w,
+    inst_st_b,
+    inst_st_h,
+    inst_st_w,
+    inst_ld_bu,
+    inst_ld_hu,
+    inst_rdcntvl_w,
+    inst_rdcntvh_w,
+    inst_ertn,
+    imm,
+    rkd_value,
+    rj_value,
+    src1_is_pc,
+    src2_is_imm,
+    src2_is_4,
+    alu_op,
+    mem_en,
+    mem_we,
+    dest,
+    gr_we,
+    res_from_cnt,
+    res_from_mem,
+    res_from_csr,
+    mul_div_op,
+    mul_div_sign,
+    ds_excp,
+    ds_excp_num,
+    csr_we,
+    csr_num,
+    csr_wmask,
+    csr_wdata
+};
 
 endmodule

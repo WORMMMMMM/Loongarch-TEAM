@@ -48,12 +48,14 @@ wire        ms_op_ld_hu;
 wire        ms_op_ertn;
 wire [ 4:0] ms_dest;
 wire        ms_gr_we;
+wire        ms_res_from_cnt;
 wire        ms_res_from_mem;
 wire        ms_res_from_csr;
 wire [ 1:0] ms_addr_lowbits;
 wire [ 3:0] ms_mul_div_op;
 wire        ms_mul_div_sign;
 wire [31:0] ms_alu_result;
+wire [31:0] ms_timer_value;
 
 wire [31:0] mem_result;
 wire [31:0] ms_final_result;
@@ -98,30 +100,34 @@ always @(posedge clk) begin
     end
 end
 
-assign ms_pc           = es_to_ms_bus_r[ 31:  0];
-assign ms_op_ld_b      = es_to_ms_bus_r[ 32: 32];
-assign ms_op_ld_h      = es_to_ms_bus_r[ 33: 33];
-assign ms_op_ld_w      = es_to_ms_bus_r[ 34: 34];
-assign ms_op_st_b      = es_to_ms_bus_r[ 35: 35];
-assign ms_op_st_h      = es_to_ms_bus_r[ 36: 36];
-assign ms_op_st_w      = es_to_ms_bus_r[ 37: 37];
-assign ms_op_ld_bu     = es_to_ms_bus_r[ 38: 38];
-assign ms_op_ld_hu     = es_to_ms_bus_r[ 39: 39];
-assign ms_op_ertn      = es_to_ms_bus_r[ 40: 40];
-assign ms_dest         = es_to_ms_bus_r[ 45: 41];
-assign ms_gr_we        = es_to_ms_bus_r[ 46: 46];
-assign ms_res_from_mem = es_to_ms_bus_r[ 47: 47];
-assign ms_res_from_csr = es_to_ms_bus_r[ 48: 48];
-assign ms_addr_lowbits = es_to_ms_bus_r[ 50: 49];
-assign ms_mul_div_op   = es_to_ms_bus_r[ 54: 51];
-assign ms_mul_div_sign = es_to_ms_bus_r[ 55: 55];
-assign ms_alu_result   = es_to_ms_bus_r[ 87: 56];
-assign es_excp         = es_to_ms_bus_r[ 88: 88];
-assign es_excp_num     = es_to_ms_bus_r[104: 89];
-assign csr_we          = es_to_ms_bus_r[105:105];
-assign csr_num         = es_to_ms_bus_r[119:106];
-assign csr_wmask       = es_to_ms_bus_r[151:120];
-assign csr_wdata       = es_to_ms_bus_r[183:152];
+assign {
+    ms_pc,
+    ms_op_ld_b,
+    ms_op_ld_h,
+    ms_op_ld_w,
+    ms_op_st_b,
+    ms_op_st_h,
+    ms_op_st_w,
+    ms_op_ld_bu,
+    ms_op_ld_hu,
+    ms_op_ertn,
+    ms_dest,
+    ms_gr_we,
+    ms_res_from_cnt,
+    ms_res_from_mem,
+    ms_res_from_csr,
+    ms_addr_lowbits,
+    ms_mul_div_op,
+    ms_mul_div_sign,
+    ms_alu_result,
+    ms_timer_value,
+    ms_excp,
+    ms_excp_num,
+    csr_we,
+    csr_num,
+    csr_wmask,
+    csr_wdata
+} = es_to_ms_bus_r;
 
 // forward to DS
 assign ms_forward [0] = ms_valid;
@@ -170,7 +176,8 @@ assign mem_result = {32{ms_op_ld_w}}  & final_data_sram_rdata                   
                     {32{ms_op_ld_h}}  & {{16{mem_halfword_data[15]}}, mem_halfword_data} |
                     {32{ms_op_ld_hu}} & {16'b0, mem_halfword_data};
 
-assign ms_final_result = ({32{ms_res_from_mem }} & mem_result       )  |
+assign ms_final_result = ({32{ms_res_from_cnt }} & ms_timer_value   )  |
+                         ({32{ms_res_from_mem }} & mem_result       )  |
                          ({32{ms_mul_div_op[0]}} & mul_result[31:0] )  |
                          ({32{ms_mul_div_op[1]}} & mul_result[63:32])  |
                          ({32{ms_mul_div_op[2]}} & div_result       )  |

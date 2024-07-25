@@ -21,7 +21,8 @@ module wb_stage(
     output [31:0] era,
     output [31:0] eentry,
     
-    input  [ 7:0] interrupt,
+    input  [ 7:0] hard_int_in,
+    input         ipi_int_in,
     output has_int,
 
     // trace debug interface
@@ -132,26 +133,27 @@ assign csr_ecode = ws_excp_num[15] ? `ECODE_INT :
 assign csr_esubcode = 3'b0;
 
 regcsr u_regcsr(
-    .clk        (clk         ),
-    .reset      (reset       ),
+    .clk         (clk         ),
+    .reset       (reset       ),
 
-    .csr_we     (csr_we      ),
-    .csr_num    (csr_num     ),
-    .csr_wmask  (csr_wmask   ),
-    .csr_wdata  (csr_wdata   ),
-    .csr_rdata  (csr_rdata   ),
+    .csr_we      (csr_we      ),
+    .csr_num     (csr_num     ),
+    .csr_wmask   (csr_wmask   ),
+    .csr_wdata   (csr_wdata   ),
+    .csr_rdata   (csr_rdata   ),
 
     .excp_flush (excp_flush  ),
-    .ertn_flush (ertn_flush  ),
-    .ecode      (csr_ecode   ),
-    .esubcode   (csr_esubcode),
-    .epc        (ws_pc       ),
+    .ertn_flush  (ertn_flush  ),
+    .ecode       (csr_ecode   ),
+    .esubcode    (csr_esubcode),
+    .epc         (ws_pc       ),
 
-    .era        (era         ),
-    .eentry     (eentry      ),
+    .era         (era         ),
+    .eentry      (eentry      ),
 
-    .interrupt   (interrupt    ),
-    .has_int    (has_int     )
+    .hard_int_in (hard_int_in ),
+    .ipi_int_in  (ipi_int_in  ),
+    .has_int     (has_int     )
 );
 
 assign rf_we    = ws_gr_we && ws_valid && ~ws_excp;
