@@ -28,8 +28,10 @@ module id_stage(
 );
 
 /* handshaking */
-wire ds_ready_go;
+wire ds_flush;
+wire ds_stall;
 wire ds_ready_go_r;
+wire ds_ready_go;
 reg  ds_valid;
 reg  [`FS_TO_DS_BUS_WD-1:0] fs_to_ds_bus_r;
 
@@ -129,6 +131,7 @@ wire [31:0] imm;
 
 /* regfile */
 wire raddr1_op;
+wire raddr2_op;
 wire [ 4:0] rf_raddr1;
 wire [31:0] rf_rdata1;
 wire [ 4:0] rf_raddr2;
@@ -169,7 +172,6 @@ wire br_taken;
 wire [31:0] br_target;
 
 /* exception */
-wire flush;
 wire excp_int;
 wire excp_sys;
 wire excp_brk;
@@ -185,21 +187,63 @@ wire [13:0] csr_num;
 wire [31:0] csr_wmask;
 wire [31:0] csr_wdata;
 
+/* hazard */
+wire es_valid;
+wire es_gr_we;
+wire [ 4:0] es_dest;
+wire [31:0] es_final_result;
+wire es_res_from_mem;
+wire es_res_from_csr;
 
-assign ds_ready_go_r  = !(es_valid && es_inst_load && (raw_ed_1 || raw_ed_2))
-                     || !flush;
+wire ms_valid;
+wire ms_gr_we;
+wire [ 4:0] ms_dest;
+wire [31:0] ms_final_result;
+wire ms_res_from_mem;
+
+wire ws_valid;
+wire ws_gr_we;
+wire [ 4:0] ws_dest;
+wire [31:0] ws_final_result;
+
+wire no_src1;
+wire no_src2;
+wire [ 4:0] src1;
+wire [ 4:0] src2;
+wire raw_ed_1_r;
+wire raw_ed_2_r;
+wire raw_md_1_r;
+wire raw_md_2_r;
+wire raw_wd_1_r;
+wire raw_wd_2_r;
+wire raw_ed_1;
+wire raw_ed_2;
+wire raw_md_1;
+wire raw_md_2;
+wire raw_wd_1;
+wire raw_wd_2;
+wire raw;
+
+
+assign ds_flush       = excp_flush || ertn_flush;
+assign ds_stall       = (es_valid && es_res_from_mem && (raw_ed_1 || raw_ed_2))  // load-use stall
+                     || (es_valid && es_res_from_csr && (raw_ed_1 || raw_ed_2))  // csr-use stall
+                     || (ms_valid && ms_res_from_csr && (raw_md_1 || raw_md_2)); // csr-use stall
+assign ds_ready_go_r  = !ds_flush && !ds_stall;
 assign ds_ready_go    = (ds_ready_go_r === 1'bx) ? 1'b1 : ds_ready_go_r;
-assign ds_allowin     = !ds_valid
-                     || ds_ready_go && es_allowin
-                     || flush;
+assign ds_allowin     = !ds_valid || ds_ready_go && es_allowin || ds_flush;
 assign ds_to_es_valid = ds_valid && ds_ready_go;
 always @(posedge clk) begin
-    if (reset)
+    if (reset) begin
         ds_valid <= 1'b0;
-    else if (ds_allowin)
+    end
+    else if (ds_allowin) begin
         ds_valid <= fs_to_ds_valid;
-    if (fs_to_ds_valid && ds_allowin)
+    end
+
+    if (fs_to_ds_valid && ds_allowin) begin
         fs_to_ds_bus_r <= fs_to_ds_bus;
+    end
 end
 
 assign pc          = fs_to_ds_bus_r[31: 0];
@@ -302,12 +346,16 @@ assign imm = need_ui5    ? {27'h0, i5}:
              need_offs26 ? {{ 4{i26[25]}}, i26, 2'b00} :
              32'h00000000;
 
-assign raddr1_op = inst_br | inst_st_w | inst_st_b | inst_st_h | inst_csrrd | inst_csrwr | inst_csrxchg;
-assign rf_raddr1 = raddr1_op ? rd : rk;
-assign rf_raddr2 = inst_lu12i_w | inst_pcaddu12i ? 5'b0 : rj;
-assign rf_we     = wb_bus[37:37];
-assign rf_waddr  = wb_bus[36:32];
-assign rf_wdata  = wb_bus[31: 0];
+assign raddr1_op = inst_lu12i_w | inst_pcaddu12i;
+assign raddr2_op = inst_br | inst_st_w | inst_st_b | inst_st_h | inst_csrrd | inst_csrwr | inst_csrxchg;
+assign rf_raddr1 = raddr1_op ? 5'b0 : rj;
+assign rf_raddr2 = raddr2_op ? rd : rk;
+
+assign {
+    rf_we,
+    rf_waddr,
+    rf_wdata
+} = wb_bus;
 
 regfile u_regfile(
     .clk    (clk      ),
@@ -320,11 +368,11 @@ regfile u_regfile(
     .wdata  (rf_wdata )
 );
 
-assign src1_is_pc  = inst_bl | inst_jirl | inst_pcaddu12i ? 1'b1 : 1'b0;
+assign src1_is_pc  = inst_bl | inst_jirl | inst_pcaddu12i;
 assign src2_is_imm = inst_slli_w | inst_srli_w | inst_srai_w | inst_slti | inst_sltui | inst_addi_w | inst_andi | inst_ori | inst_xori
                    | inst_ld_b | inst_ld_h | inst_ld_w | inst_st_b | inst_st_h | inst_st_w | inst_ld_bu | inst_ld_hu
                    | inst_lu12i_w | inst_pcaddu12i;
-assign src2_is_4   = inst_bl | inst_jirl ? 1'b1 : 1'b0;
+assign src2_is_4   = inst_bl | inst_jirl;
 
 assign alu_op[ 0] = inst_add_w | inst_addi_w | inst_mem | inst_jirl | inst_bl | inst_pcaddu12i;
 assign alu_op[ 1] = inst_sub_w;
@@ -364,19 +412,18 @@ assign overflow = (rj_value[31] ^ rkd_value[31]) & (rj_value[31] ^ result[31]);
 assign rj_eq_rd  = (rj_value == rkd_value);
 assign rj_lt_rd  = result[31] ^ overflow;
 assign rj_ltu_rd = sign;
-assign br_taken  = ( inst_jirl | inst_b | inst_bl
-                  | (inst_beq  &  rj_eq_rd)
-                  | (inst_bne  & ~rj_eq_rd)
-                  | (inst_blt  &  rj_lt_rd)
-                  | (inst_bge  & ~rj_lt_rd)
-                  | (inst_bltu &  rj_ltu_rd)
-                  | (inst_bgeu & ~rj_ltu_rd) ); // && ds_valid && ds_ready_go;  ///////
+assign br_taken  = ds_valid && ( inst_jirl | inst_b | inst_bl
+                  | inst_beq  &  rj_eq_rd
+                  | inst_bne  & ~rj_eq_rd
+                  | inst_blt  &  rj_lt_rd
+                  | inst_bge  & ~rj_lt_rd
+                  | inst_bltu &  rj_ltu_rd
+                  | inst_bgeu & ~rj_ltu_rd);
 assign br_target = inst_jirl ? rj_value + imm : pc + imm;
 
 assign br_bus[32:32] = br_taken;
 assign br_bus[31: 0] = br_target;
 
-assign flush = excp_flush | ertn_flush;
 assign excp_int = has_int;
 assign excp_sys = inst_syscall;
 assign excp_brk = inst_break;
@@ -394,81 +441,46 @@ assign csr_num   = inst_rdcntid ? `CSR_TID : inst[23:10];
 assign csr_wmask = inst_csrxchg ? rj_value : 32'hffffffff;
 assign csr_wdata = rkd_value;
 
-/*-----------------Hazard detection-----------------*/
-//signals from ES
-wire es_valid;
-wire es_gr_we;
-wire [ 4:0] es_dest;
-wire [31:0] es_alu_result;
-wire [31:0] es_pc;
-wire es_inst_load;
-assign es_valid      = es_forward[0];
-assign es_gr_we      = es_forward[1];
-assign es_dest       = es_forward[6:2];
-assign es_alu_result = es_forward[38:7];
-assign es_pc         = es_forward[70:39];
-assign es_inst_load  = es_forward[71];
+assign {
+    es_valid,
+    es_gr_we,
+    es_dest,
+    es_final_result,
+    es_res_from_mem,
+    es_res_from_csr
+} = es_forward;
 
-// signals from MS
-wire ms_valid;
-wire ms_gr_we;
-wire [ 4:0] ms_dest;
-wire [31:0] ms_final_result;
-wire ms_res_from_mem;
-wire [31:0] ms_pc;
-assign ms_valid        = ms_forward[0];
-assign ms_gr_we        = ms_forward[1];
-assign ms_dest         = ms_forward[6:2];
-assign ms_final_result = ms_forward[38:7];
-assign ms_res_from_mem = ms_forward[39];
-assign ms_pc           = ms_forward[71:40];
+assign {
+    ms_valid,
+    ms_gr_we,
+    ms_dest,
+    ms_final_result,
+    ms_res_from_mem,
+    ms_res_from_csr
+} = ms_forward;
 
-// signals from WS
-wire ws_valid;
-wire ws_gr_we;
-wire [ 4:0] ws_dest;
-wire [31:0] ws_final_result;
-wire [31:0] ws_pc;
-assign ws_valid        = ws_forward[0];
-assign ws_gr_we        = ws_forward[1];
-assign ws_dest         = ws_forward[6:2];
-assign ws_final_result = ws_forward[38:7];
-assign ws_pc           = ws_forward[70:39];
+assign {
+    ws_valid,
+    ws_gr_we,
+    ws_dest,
+    ws_final_result
+} = ws_forward;
 
 // RAW hazard
-wire raw;
-wire raw_ed_1;
-wire raw_ed_2;
-wire raw_md_1;
-wire raw_md_2;
-wire raw_wd_1;
-wire raw_wd_2;
-
-assign no_src1 = inst_b | inst_bl | inst_pcaddu12i | inst_rdcntvl_w | inst_rdcntvh_w | inst_rdcntid | inst_csrrd | inst_csrwr | inst_csrxchg;
+assign no_src1 = inst_b | inst_bl | inst_pcaddu12i | inst_rdcntvl_w | inst_rdcntvh_w | inst_rdcntid | inst_csrrd | inst_csrwr;
 assign no_src2 = inst_slli_w | inst_srli_w | inst_srai_w | inst_slti | inst_sltui | inst_addi_w | inst_andi | inst_ori | inst_xori
                | inst_ld_w | inst_ld_b | inst_ld_bu | inst_ld_h | inst_ld_hu
-               | inst_b | inst_bl | inst_jirl
-               | inst_pcaddu12i
-               | inst_rdcntvh_w | inst_rdcntid | inst_csrrd;
+               | inst_b | inst_bl | inst_jirl | inst_pcaddu12i | inst_rdcntvh_w | inst_rdcntid | inst_csrrd;
 
-wire [4:0] src1;
-wire [4:0] src2;
-assign src1 = no_src1 ? 5'd0 : rf_raddr2;
-assign src2 = no_src2 ? 5'd0 : rf_raddr1;
+assign src1 = no_src1 ? 5'd0 : rf_raddr1;
+assign src2 = no_src2 ? 5'd0 : rf_raddr2;
 
-wire raw_ed_1_r;
-wire raw_ed_2_r;
-wire raw_md_1_r;
-wire raw_md_2_r;
-wire raw_wd_1_r;
-wire raw_wd_2_r;
- 
-assign raw_ed_1_r = es_valid && (src1 == es_dest) && (src1 != 5'h0) && (es_dest != 5'h0) && es_gr_we;
-assign raw_ed_2_r = es_valid && (src2 == es_dest) && (src2 != 5'h0) && (es_dest != 5'h0) && es_gr_we;
-assign raw_md_1_r = ms_valid && (src1 == ms_dest) && (src1 != 5'h0) && (ms_dest != 5'h0) && ms_gr_we;
-assign raw_md_2_r = ms_valid && (src2 == ms_dest) && (src2 != 5'h0) && (ms_dest != 5'h0) && ms_gr_we;
-assign raw_wd_1_r = ws_valid && (src1 == ws_dest) && (src1 != 5'h0) && (ws_dest != 5'h0) && ws_gr_we;
-assign raw_wd_2_r = ws_valid && (src2 == ws_dest) && (src2 != 5'h0) && (ws_dest != 5'h0) && ws_gr_we;
+assign raw_ed_1_r = es_valid && (src1 == es_dest) && (src1 != 5'h0) && es_gr_we;
+assign raw_ed_2_r = es_valid && (src2 == es_dest) && (src2 != 5'h0) && es_gr_we;
+assign raw_md_1_r = ms_valid && (src1 == ms_dest) && (src1 != 5'h0) && ms_gr_we;
+assign raw_md_2_r = ms_valid && (src2 == ms_dest) && (src2 != 5'h0) && ms_gr_we;
+assign raw_wd_1_r = ws_valid && (src1 == ws_dest) && (src1 != 5'h0) && ws_gr_we;
+assign raw_wd_2_r = ws_valid && (src2 == ws_dest) && (src2 != 5'h0) && ws_gr_we;
 
 assign raw_ed_1 = (raw_ed_1_r === 1'bx) ? 1'b0 : raw_ed_1_r;
 assign raw_ed_2 = (raw_ed_2_r === 1'bx) ? 1'b0 : raw_ed_2_r;
@@ -479,15 +491,14 @@ assign raw_wd_2 = (raw_wd_2_r === 1'bx) ? 1'b0 : raw_wd_2_r;
 
 assign raw = raw_ed_1 | raw_ed_2 | raw_md_1 | raw_md_2 | raw_wd_1 | raw_wd_2;
 
-assign rj_value= raw_ed_1 ? es_alu_result :
-                 raw_md_1 ? ms_final_result :
-                 raw_wd_1 ? ws_final_result : rf_rdata2;
-assign rkd_value= raw_ed_2 ? es_alu_result :  
-                 raw_md_2 ? ms_final_result :
-                 raw_wd_2 ? ws_final_result : rf_rdata1;
+assign rj_value  = raw_ed_1 ? es_final_result :
+                   raw_md_1 ? ms_final_result :
+                   raw_wd_1 ? ws_final_result : rf_rdata1;
+assign rkd_value = raw_ed_2 ? es_final_result :
+                   raw_md_2 ? ms_final_result :
+                   raw_wd_2 ? ws_final_result : rf_rdata2;
 
-assign ds_to_es_bus =
-{
+assign ds_to_es_bus = {
     pc,
     inst_ld_b,
     inst_ld_h,

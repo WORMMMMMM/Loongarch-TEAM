@@ -15,7 +15,8 @@ module wb_stage(
 
     // forward to ds
     output [`WS_FORWARD_WD-1:0] ws_forward,
-
+    
+    output ws_ex,
     output excp_flush,
     output ertn_flush,
     output [31:0] era,
@@ -42,6 +43,7 @@ wire ws_ertn;
 wire [ 4:0] ws_dest;
 wire ws_gr_we;
 wire ws_res_from_csr;
+wire [31:0] ms_final_result;
 wire [31:0] ws_final_result;
 
 /* exception */
@@ -55,6 +57,7 @@ wire csr_we;
 wire [13:0] csr_num;
 wire [31:0] csr_wmask;
 wire [31:0] csr_wdata;
+wire [31:0] csr_rdata;
 
 wire [5:0] csr_ecode;
 wire [2:0] csr_esubcode;
@@ -66,8 +69,7 @@ wire [31:0] rf_wdata;
 
 
 assign ws_ready_go = 1'b1;
-assign ws_allowin  = !ws_valid
-                   || ws_ready_go;
+assign ws_allowin  = !ws_valid || ws_ready_go;
 always @(posedge clk) begin
     if (reset) begin
         ws_valid <= 1'b0;
@@ -81,41 +83,36 @@ always @(posedge clk) begin
     end
 end
 
-assign ws_pc           = ms_to_ws_bus_r[ 31:  0];
-assign ws_ertn         = ms_to_ws_bus_r[ 32: 32];
-assign ws_dest         = ms_to_ws_bus_r[ 37: 33];
-assign ws_gr_we        = ms_to_ws_bus_r[ 38: 38];
-assign ws_res_from_csr = ms_to_ws_bus_r[ 39: 39];
-assign ws_final_result = ms_to_ws_bus_r[ 71: 40];
-assign ms_excp         = ms_to_ws_bus_r[ 72: 72];
-assign ms_excp_num     = ms_to_ws_bus_r[ 88: 73];
-assign csr_we          = ms_to_ws_bus_r[ 89: 89];
-assign csr_num         = ms_to_ws_bus_r[103: 90];
-assign csr_wmask       = ms_to_ws_bus_r[135:104];
-assign csr_wdata       = ms_to_ws_bus_r[167:136];
-
-// forward to DS
-assign ws_forward [0] = ws_valid;
-assign ws_forward [1] = ws_gr_we;
-assign ws_forward [6:2] = ws_dest;
-assign ws_forward [38:7] = ws_final_result;
-assign ws_forward [70:39] = ws_pc;
+assign {
+    ws_pc,
+    ws_ertn,
+    ws_dest,
+    ws_gr_we,
+    ws_res_from_csr,
+    ms_final_result,
+    ms_excp,
+    ms_excp_num,
+    csr_we,
+    csr_num,
+    csr_wmask,
+    csr_wdata
+} = ms_to_ws_bus_r;
 
 // debug info generate
 assign debug_wb_pc       = ws_pc;
 assign debug_wb_rf_we    = {4{rf_we}};
-assign debug_wb_rf_wnum  = ws_dest;
-assign debug_wb_rf_wdata = ws_final_result;
+assign debug_wb_rf_wnum  = rf_waddr;
+assign debug_wb_rf_wdata = rf_wdata;
 
 assign ws_excp     = ms_excp;
 assign ws_excp_num = ms_excp_num;
 
-assign excp_flush = ws_valid & ws_excp;
-assign ertn_flush = ws_valid & ws_ertn;
-
+assign ws_ex      = ws_valid && ws_excp || ws_excp_num[15] !== 1'bx && ws_excp_num[15];
+assign excp_flush = ws_valid && ws_excp || ws_excp_num[15] !== 1'bx && ws_excp_num[15];
+assign ertn_flush = ws_valid && ws_ertn;
 
 assign csr_ecode = ws_excp_num[15] ? `ECODE_INT :
-                   ws_excp_num[14] ? `ECODE_ADE :
+                   ws_excp_num[14] ? `ECODE_ADE : 
                    ws_excp_num[13] ? `ECODE_TLBR :
                    ws_excp_num[12] ? `ECODE_PIF :
                    ws_excp_num[11] ? `ECODE_PPI :
@@ -157,12 +154,23 @@ regcsr u_regcsr(
     .has_int     (has_int     )
 );
 
+assign ws_final_result = ws_res_from_csr ? csr_rdata : ms_final_result;
+
 assign rf_we    = ws_gr_we && ws_valid && ~ws_excp;
 assign rf_waddr = ws_dest;
-assign rf_wdata = ws_res_from_csr ? csr_rdata : ws_final_result;
+assign rf_wdata = ws_final_result;
 
-assign wb_bus[31: 0] = rf_wdata;
-assign wb_bus[36:32] = rf_waddr;
-assign wb_bus[37:37] = rf_we;
+assign wb_bus = {
+    rf_we,
+    rf_waddr,
+    rf_wdata
+};
+
+assign ws_forward = {
+    ws_valid,
+    ws_gr_we,
+    ws_dest,
+    ws_final_result
+};
 
 endmodule

@@ -7,9 +7,9 @@ module cpu_core(
     input  [ 7:0] hard_int_in,
 
     // inst sram interface
-    output        inst_sram_req,
-    output [ 3:0] inst_sram_wstrb,
-    output [ 1:0] inst_sram_size,
+    // output        inst_sram_req,
+    // output [ 3:0] inst_sram_wstrb,
+    // output [ 1:0] inst_sram_size,
     output        inst_sram_en,
     output [ 3:0] inst_sram_we,
     output [31:0] inst_sram_addr,
@@ -17,9 +17,9 @@ module cpu_core(
     input  [31:0] inst_sram_rdata,
 
     // data sram interface
-    output        data_sram_req,
-    output [ 3:0] data_sram_wstrb,
-    output [ 1:0] data_sram_size,
+    // output        data_sram_req,
+    // output [ 3:0] data_sram_wstrb,
+    // output [ 1:0] data_sram_size,
     output        data_sram_en,
     output [ 3:0] data_sram_we,
     output [31:0] data_sram_addr,
@@ -67,6 +67,9 @@ wire [31:0] div_result;
 wire [31:0] mod_result;
 wire [63:0] mul_result;
 
+wire ms_ex;
+wire ws_ex;
+
 wire excp_flush;
 wire ertn_flush;
 wire [31:0] era;
@@ -96,9 +99,9 @@ if_stage if_stage(
     .eentry          (eentry         ),
 
     // inst sram interface
-    .inst_sram_req   (inst_sram_req  ),
-    .inst_sram_wstrb (inst_sram_wstrb),
-    .inst_sram_size  (inst_sram_size ),
+    // .inst_sram_req   (inst_sram_req  ),
+    // .inst_sram_wstrb (inst_sram_wstrb),
+    // .inst_sram_size  (inst_sram_size ),
     .inst_sram_en    (inst_sram_en   ),
     .inst_sram_we    (inst_sram_we   ),
     .inst_sram_addr  (inst_sram_addr ),
@@ -160,37 +163,18 @@ exe_stage exe_stage(
     .div_complete    (div_complete   ),
     
     // data sram interface
-    .data_sram_req   (data_sram_req  ),
-    .data_sram_wstrb (data_sram_wstrb),
-    .data_sram_size  (data_sram_size ),
+    // .data_sram_req   (data_sram_req  ),
+    // .data_sram_wstrb (data_sram_wstrb),
+    // .data_sram_size  (data_sram_size ),
     .data_sram_en    (data_sram_en   ),
     .data_sram_we    (data_sram_we   ),
     .data_sram_addr  (data_sram_addr ),
     .data_sram_wdata (data_sram_wdata),
 
     .excp_flush      (excp_flush     ),
-    .ertn_flush      (ertn_flush     )
-);
-
-div divider(
-    .div_clk    (clk            ),
-    .reset      (reset          ),
-    .div        (es_div_enable  ),
-    .div_signed (es_mul_div_sign),
-    .complete   (div_complete   ),
-    .x          (es_rj_value    ),
-    .y          (es_rkd_value   ),
-    .s          (div_result     ),
-    .r          (mod_result     )
-);
-
-mul multiplier(
-    .mul_clk    (clk            ),
-    .reset      (reset          ),
-    .mul_signed (es_mul_div_sign),
-    .x          (es_rj_value    ),
-    .y          (es_rkd_value   ),
-    .result     (mul_result     )
+    .ertn_flush      (ertn_flush     ),
+    .ms_ex           (ms_ex          ),
+    .ws_ex           (ws_ex          )
 );
 
 mem_stage mem_stage(
@@ -221,7 +205,8 @@ mem_stage mem_stage(
     .data_sram_rdata (data_sram_rdata),
 
     .excp_flush      (excp_flush     ),
-    .ertn_flush      (ertn_flush     )
+    .ertn_flush      (ertn_flush     ),
+    .ms_ex           (ms_ex          )
 );
 
 wb_stage wb_stage(
@@ -240,6 +225,7 @@ wb_stage wb_stage(
     // forward
     .ws_forward        (ws_forward       ),
 
+    .ws_ex             (ws_ex            ),
     .excp_flush        (excp_flush       ),
     .ertn_flush        (ertn_flush       ),
     .era               (era              ),
@@ -254,6 +240,27 @@ wb_stage wb_stage(
     .debug_wb_rf_we    (debug_wb_rf_we   ),
     .debug_wb_rf_wnum  (debug_wb_rf_wnum ),
     .debug_wb_rf_wdata (debug_wb_rf_wdata)
+);
+
+div divider(
+    .div_clk    (clk            ),
+    .reset      (reset          ),
+    .div        (es_div_enable  ),
+    .div_signed (es_mul_div_sign),
+    .complete   (div_complete   ),
+    .x          (es_rj_value    ),
+    .y          (es_rkd_value   ),
+    .s          (div_result     ),
+    .r          (mod_result     )
+);
+
+mul multiplier(
+    .mul_clk    (clk            ),
+    .reset      (reset          ),
+    .mul_signed (es_mul_div_sign),
+    .x          (es_rj_value    ),
+    .y          (es_rkd_value   ),
+    .result     (mul_result     )
 );
 
 endmodule

@@ -132,7 +132,10 @@ end
 always @(posedge clk) begin
     if (reset) begin
         csr_estat[ 1: 0] <= 2'b0;
+        csr_estat[ 9: 2] <= 8'b0;
         csr_estat[10:10] <= 1'b0;
+        csr_estat[11:11] <= 1'b0;
+        csr_estat[12:12] <= 1'b0;
         csr_estat[15:13] <= 3'b0;
         csr_estat[31:31] <= 1'b0;
     end
