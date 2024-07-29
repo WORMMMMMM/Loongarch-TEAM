@@ -139,8 +139,8 @@ wire [31:0] rf_rdata2;
 wire rf_we;
 wire [ 4:0] rf_waddr;
 wire [31:0] rf_wdata;
-wire [31:0] rkd_value;
 wire [31:0] rj_value;
+wire [31:0] rkd_value;
 
 /* alu */
 wire src1_is_pc;
@@ -512,8 +512,8 @@ assign ds_to_es_bus = {
     inst_rdcntvh_w,
     inst_ertn,
     imm,
-    rkd_value,
     rj_value,
+    rkd_value,
     src1_is_pc,
     src2_is_imm,
     src2_is_4,

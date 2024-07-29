@@ -107,8 +107,10 @@ assign debug_wb_rf_wdata = rf_wdata;
 assign ws_excp     = ms_excp;
 assign ws_excp_num = ms_excp_num;
 
-assign ws_ex      = ws_valid && ws_excp || ws_excp_num[15] !== 1'bx && ws_excp_num[15];
-assign excp_flush = ws_valid && ws_excp || ws_excp_num[15] !== 1'bx && ws_excp_num[15];
+// assign ws_ex      = ws_valid && ws_excp || ws_excp_num[15] !== 1'bx && ws_excp_num[15];
+// assign excp_flush = ws_valid && ws_excp || ws_excp_num[15] !== 1'bx && ws_excp_num[15];
+assign ws_ex      = ws_valid && ws_excp;
+assign excp_flush = ws_valid && ws_excp;
 assign ertn_flush = ws_valid && ws_ertn;
 
 assign csr_ecode = ws_excp_num[15] ? `ECODE_INT :

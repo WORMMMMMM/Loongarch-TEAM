@@ -45,7 +45,7 @@
     `define CSR_TID    14'h040
     `define CSR_TCFG   14'h041
     `define CSR_TVAL   14'h042
-    `define CSR_TICLR  14'h043
+    `define CSR_TICLR  14'h044
 
     `define CSR_CRMD_PLV    1:0
     `define CSR_CRMD_IE     2

@@ -61,8 +61,8 @@ wire        es_op_rdcntvl_w;
 wire        es_op_rdcntvh_w;
 wire        es_op_ertn;
 wire [31:0] es_imm;
-wire [31:0] es_rkd_value;
 wire [31:0] es_rj_value;
+wire [31:0] es_rkd_value;
 wire        es_src1_is_pc;
 wire        es_src2_is_imm;
 wire        es_src2_is_4;
@@ -138,8 +138,8 @@ assign {
     es_op_rdcntvh_w,
     es_op_ertn,
     es_imm,
-    es_rkd_value,
     es_rj_value,
+    es_rkd_value,
     es_src1_is_pc,
     es_src2_is_imm,
     es_src2_is_4,
