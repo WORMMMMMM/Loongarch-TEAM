@@ -225,7 +225,7 @@ assign excp_ale = (es_op_ld_h | es_op_st_h | es_op_ld_hu) & data_sram_addr[0] !=
 assign es_excp     = ds_excp | excp_ale;
 assign ex_excp_num = ds_excp_num | {9'b0, excp_ale, 6'b0};
 
-assign es_ex       = es_valid && es_excp;
+assign es_ex       = es_valid && (es_excp || es_op_ertn);
 
 assign es_forward = {
     es_valid,

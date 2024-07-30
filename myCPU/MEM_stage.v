@@ -184,7 +184,7 @@ assign ms_final_result = ({32{ms_res_from_cnt }} & timer_value      ) |
 assign ms_excp     = es_excp;
 assign ms_excp_num = es_excp_num;
 
-assign ms_ex       = ms_valid && ms_excp;
+assign ms_ex       = ms_valid && (ms_excp || ms_op_ertn);
 
 assign ms_forward = {
     ms_valid,

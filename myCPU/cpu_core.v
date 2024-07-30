@@ -225,9 +225,9 @@ wb_stage wb_stage(
     // forward
     .ws_forward        (ws_forward       ),
 
-    .ws_ex             (ws_ex            ),
     .excp_flush        (excp_flush       ),
     .ertn_flush        (ertn_flush       ),
+    .ws_ex             (ws_ex            ),
     .era               (era              ),
     .eentry            (eentry           ),
 

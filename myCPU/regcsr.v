@@ -175,6 +175,9 @@ always @(posedge clk) begin
     if (csr_badv_we) begin
         csr_badv <= csr_wmask & csr_wdata | ~csr_wmask & csr_badv;
     end
+    else if (excp_flush && ecode == `ECODE_ADE) begin
+        csr_badv <= epc;
+    end
 end
 
 always @(posedge clk) begin

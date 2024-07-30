@@ -16,9 +16,9 @@ module wb_stage(
     // forward to ds
     output [`WS_FORWARD_WD-1:0] ws_forward,
     
-    output ws_ex,
     output excp_flush,
     output ertn_flush,
+    output ws_ex,
     output [31:0] era,
     output [31:0] eentry,
     
@@ -109,9 +109,10 @@ assign ws_excp_num = ms_excp_num;
 
 // assign ws_ex      = ws_valid && ws_excp || ws_excp_num[15] !== 1'bx && ws_excp_num[15];
 // assign excp_flush = ws_valid && ws_excp || ws_excp_num[15] !== 1'bx && ws_excp_num[15];
-assign ws_ex      = ws_valid && ws_excp;
 assign excp_flush = ws_valid && ws_excp;
 assign ertn_flush = ws_valid && ws_ertn;
+
+assign ws_ex      = ws_valid && (ws_excp || ws_ertn);
 
 assign csr_ecode = ws_excp_num[15] ? `ECODE_INT :
                    ws_excp_num[14] ? `ECODE_ADE : 
