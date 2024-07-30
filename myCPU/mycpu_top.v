@@ -14,6 +14,7 @@ module mycpu_top(
     output     [ 2:0] arprot,//0
     output            arvalid,//read address valid
     input             arready,//read address valid
+
     // read respond channel
     input      [ 3:0] rid,
     input      [31:0] rdata,
@@ -21,6 +22,7 @@ module mycpu_top(
     input             rlast,//ignore
     input             rvalid,//read valid
     output            rready,//read ready
+
     // write request channel
     output     [ 3:0] awid,//1
     output     [31:0] awaddr,
@@ -32,6 +34,7 @@ module mycpu_top(
     output     [ 2:0] awprot,//0
     output            awvalid,//write address valid
     input             awready,//write address valid
+
     // write data channel
     output     [ 3:0] wid,//1
     output     [31:0] wdata,
@@ -39,6 +42,7 @@ module mycpu_top(
     output            wlast,//1
     output            wvalid,
     input             wready,
+    
     // write respond channel
     input      [ 3:0] bid,//ignore
     input      [ 1:0] bresp,//ignore
@@ -52,31 +56,38 @@ module mycpu_top(
     output [31:0] debug_wb_rf_wdata
 );
 
-    wire         clk;
-    wire         resetn;
-    assign       clk = aclk;
-    assign       resetn = aresetn;
+wire         clk;
+wire         resetn;
+assign       clk = aclk;
+assign       resetn = aresetn;
 
-    wire         inst_sram_req;
-    wire  [ 3:0] inst_sram_wstrb;
-    wire  [31:0] inst_sram_addr;
-    wire  [31:0] inst_sram_wdata;
-    wire  [31:0] inst_sram_rdata;
-    wire  [ 1:0] inst_sram_size;
-    wire         inst_sram_addr_ok;
-    wire         inst_sram_data_ok;
-    wire         inst_sram_wr;
+wire         inst_sram_req;
+wire  [ 3:0] inst_sram_wstrb;
+wire  [31:0] inst_sram_addr;
+wire  [31:0] inst_sram_wdata;
+wire  [31:0] inst_sram_rdata;
+wire  [ 1:0] inst_sram_size;
+wire         inst_sram_addr_ok;
+wire         inst_sram_data_ok;
+wire         inst_sram_wr;
 
-    wire         data_sram_req;
-    wire  [ 3:0] data_sram_wstrb;
-    wire  [31:0] data_sram_addr;
-    wire  [31:0] data_sram_wdata;
-    wire  [31:0] data_sram_rdata;
-    wire  [ 1:0] data_sram_size;
-    wire         data_sram_addr_ok;
-    wire         data_sram_data_ok;
-    wire         data_sram_wr;
-    
+wire         data_sram_req;
+wire  [ 3:0] data_sram_wstrb;
+wire  [31:0] data_sram_addr;
+wire  [31:0] data_sram_wdata;
+wire  [31:0] data_sram_rdata;
+wire  [ 1:0] data_sram_size;
+wire         data_sram_addr_ok;
+wire         data_sram_data_ok;
+wire         data_sram_wr;
+
+wire         inst_sram_en;
+wire         data_sram_en;
+assign       inst_sram_addr_ok = inst_sram_en;
+assign       inst_sram_data_ok = inst_sram_en;
+assign       data_sram_addr_ok = data_sram_en;
+assign       data_sram_data_ok = data_sram_en;
+
 
 axi_bridge axi_bridge(
 
@@ -93,12 +104,14 @@ axi_bridge axi_bridge(
     .arprot    (arprot  ),
     .arvalid   (arvalid ),
     .arready   (arready ),
+    
     // read respond
     .rid       (rid     ),
     .rdata     (rdata   ),
     .rresp     (rresp   ),
     .rvalid    (rvalid  ),
     .rready    (rready  ),
+
     // write request
     .awid      (awid    ),
     .awaddr    (awaddr  ),
@@ -110,6 +123,7 @@ axi_bridge axi_bridge(
     .awprot    (awprot  ),
     .awvalid   (awvalid ),
     .awready   (awready ),
+
     // write data
     .wid       (wid     ),
     .wdata     (wdata   ),
@@ -117,6 +131,7 @@ axi_bridge axi_bridge(
     .wlast     (wlast   ),
     .wvalid    (wvalid  ),
     .wready    (wready  ),
+
     // write respond
     .bid       (bid     ),
     .bresp     (bresp   ),
@@ -133,6 +148,7 @@ axi_bridge axi_bridge(
     .inst_sram_addr_ok (inst_sram_addr_ok),
     .inst_sram_data_ok (inst_sram_data_ok),
     .inst_sram_wr      (inst_sram_wr     ),
+
     // data sram interface
     .data_sram_req     (data_sram_req    ),
     .data_sram_wstrb   (data_sram_wstrb  ),
@@ -146,10 +162,10 @@ axi_bridge axi_bridge(
 );
 
 
-
 cpu_core cpu_core(
     .clk               (clk              ),
     .resetn            (resetn           ),
+
     // inst sram interface
     .inst_sram_req     (inst_sram_req    ),
     .inst_sram_wstrb   (inst_sram_wstrb  ),
@@ -160,6 +176,7 @@ cpu_core cpu_core(
     .inst_sram_addr_ok (inst_sram_addr_ok),
     .inst_sram_data_ok (inst_sram_data_ok),
     .inst_sram_wr      (inst_sram_wr     ),
+
     // data sram interface
     .data_sram_req     (data_sram_req    ),
     .data_sram_wstrb   (data_sram_wstrb  ),
@@ -170,14 +187,12 @@ cpu_core cpu_core(
     .data_sram_addr_ok (data_sram_addr_ok),
     .data_sram_data_ok (data_sram_data_ok),
     .data_sram_wr      (data_sram_wr     ),
+
     // trace debug interface
     .debug_wb_pc       (debug_wb_pc      ),
-    .debug_wb_rf_we   (debug_wb_rf_we  ),
+    .debug_wb_rf_we    (debug_wb_rf_we  ),
     .debug_wb_rf_wnum  (debug_wb_rf_wnum ),
     .debug_wb_rf_wdata (debug_wb_rf_wdata)
 );
-
-
-
 
 endmodule
