@@ -26,6 +26,7 @@ module mem_stage(
 
     // from data-sram
     input  [31:0] data_sram_rdata,
+    input  data_sram_data_ok,
     
     input  excp_flush,
     input  ertn_flush,
@@ -33,7 +34,6 @@ module mem_stage(
 );
 
 /* handshaking */
-
 wire ms_flush;
 wire ms_stall;
 wire ms_ready_go;
@@ -72,8 +72,6 @@ reg  [32:0] data_sram_rdata_buf;
 reg         data_sram_rdata_buf_valid;
 wire [32:0] final_data_sram_rdata;
 
-wire data_sram_data_ok = 1'b1;
-
 /* exception */
 wire es_excp;
 wire ms_excp;
@@ -89,7 +87,7 @@ wire [31:0] csr_wdata;
 
 
 assign ms_flush       = excp_flush || ertn_flush;
-assign ms_stall       = 1'b0;
+assign ms_stall       = ms_res_from_mem && !data_sram_data_ok && !data_sram_rdata_buf_valid;
 assign ms_ready_go    = !ms_flush && !ms_stall;
 assign ms_allowin     = !ms_valid || ms_ready_go && ws_allowin || ms_flush;
 assign ms_to_ws_valid = ms_valid && ms_ready_go;

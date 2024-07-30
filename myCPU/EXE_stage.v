@@ -27,13 +27,13 @@ module exe_stage(
     input  div_complete,
     
     // data sram interface
-    // output        data_sram_req,
-    // output [ 3:0] data_sram_wstrb,
-    output [ 1:0] data_sram_size,
-    output        data_sram_en,
-    output [ 3:0] data_sram_we,
+    output data_sram_req,
+    output [ 3:0] data_sram_wstrb,
     output [31:0] data_sram_addr,
     output [31:0] data_sram_wdata,
+    output [ 1:0] data_sram_size,
+    input  data_sram_addr_ok,
+    output data_sram_wr,
 
     input  excp_flush,
     input  ertn_flush,
@@ -99,7 +99,6 @@ wire es_excp;
 wire [15:0] ds_excp_num;
 wire [15:0] es_excp_num;
 
-
 /* csr */
 wire csr_we;
 wire [13:0] csr_num;
@@ -108,7 +107,7 @@ wire [31:0] csr_wdata;
 
 
 assign es_flush       = excp_flush || ertn_flush;
-assign es_stall       = es_div_stall;
+assign es_stall       = es_div_stall || !data_sram_addr_ok && es_mem_en;
 assign es_ready_go    = !es_flush && !es_stall;
 assign es_allowin     = !es_valid || es_ready_go && ms_allowin || es_flush;
 assign es_to_ms_valid = es_valid && es_ready_go;
@@ -183,32 +182,29 @@ alu u_alu(
 assign es_final_result = es_alu_result;
 
 /* --------------  MEM write interface  -------------- */
-// assign es_addr00 = data_sram_addr[1:0] == 2'b00;
-// assign es_addr01 = data_sram_addr[1:0] == 2'b01;
-// assign es_addr10 = data_sram_addr[1:0] == 2'b10;
-// assign es_addr11 = data_sram_addr[1:0] == 2'b11;
-// assign data_sram_wstrb_sp= {4{es_op_st_b && es_addr00}} & 4'b0001 |
-//                            {4{es_op_st_b && es_addr01}} & 4'b0010 |
-//                            {4{es_op_st_b && es_addr10}} & 4'b0100 |
-//                            {4{es_op_st_b && es_addr11}} & 4'b1000 |
-//                            {4{es_op_st_h && es_addr00}} & 4'b0011 |
-//                            {4{es_op_st_h && es_addr10}} & 4'b1100 |
-//                            {4{es_op_st_w}}              & 4'b1111;
+assign es_addr00 = data_sram_addr[1:0] == 2'b00;
+assign es_addr01 = data_sram_addr[1:0] == 2'b01;
+assign es_addr10 = data_sram_addr[1:0] == 2'b10;
+assign es_addr11 = data_sram_addr[1:0] == 2'b11;
+assign data_sram_wstrb_sp= {4{es_op_st_b && es_addr00}} & 4'b0001 |
+                           {4{es_op_st_b && es_addr01}} & 4'b0010 |
+                           {4{es_op_st_b && es_addr10}} & 4'b0100 |
+                           {4{es_op_st_b && es_addr11}} & 4'b1000 |
+                           {4{es_op_st_h && es_addr00}} & 4'b0011 |
+                           {4{es_op_st_h && es_addr10}} & 4'b1100 |
+                           {4{es_op_st_w}}              & 4'b1111;
 
-// assign data_sram_wstrb = es_mem_we ? data_sram_wstrb_sp : 4'h0;
+
+assign data_sram_req   = es_valid && ms_allowin && es_mem_en && !es_ex && !ms_ex && !ws_ex;
+assign data_sram_wstrb = es_mem_we ? data_sram_wstrb_sp : 4'h0;
+assign data_sram_addr  = es_final_result;
 assign data_sram_wdata = {32{es_op_st_b}} & {4{es_rkd_value[ 7:0]}} |
                          {32{es_op_st_h}} & {2{es_rkd_value[15:0]}} |
                          {32{es_op_st_w}} & es_rkd_value[31:0];
-
 assign data_sram_size  = {2{es_op_st_b || es_op_ld_b || es_op_ld_bu}} & 2'b00 |
                          {2{es_op_st_h || es_op_ld_h || es_op_ld_hu}} & 2'b01 |
                          {2{es_op_st_w || es_op_ld_w}}                & 2'b10;
-
-assign data_sram_en    = es_mem_en;
-assign data_sram_we    = es_mem_we && es_valid && ~es_ex && ~ms_ex && ~ws_ex ? 4'hf : 4'h0;
-assign data_sram_addr  = es_final_result;
-
-// assign data_sram_req   = (es_res_from_mem || es_mem_we) && es_valid && ms_allowin;
+assign data_sram_wr    = |data_sram_wstrx;
 
 always @(posedge clk) begin
     if (reset) begin

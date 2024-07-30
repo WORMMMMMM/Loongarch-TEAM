@@ -169,6 +169,7 @@ wire rj_eq_rd;
 wire rj_lt_rd;
 wire rj_ltu_rd;
 wire br_taken;
+wire br_stall;
 wire [31:0] br_target;
 
 /* exception */
@@ -200,6 +201,8 @@ wire ms_gr_we;
 wire [ 4:0] ms_dest;
 wire [31:0] ms_final_result;
 wire ms_res_from_mem;
+wire ms_res_from_csr;
+wire ms_data_sram_data_ok;
 
 wire ws_valid;
 wire ws_gr_we;
@@ -226,9 +229,10 @@ wire raw;
 
 
 assign ds_flush       = excp_flush || ertn_flush;
-assign ds_stall       = (es_valid && es_res_from_mem && (raw_ed_1 || raw_ed_2))  // load-use stall
-                     || (es_valid && es_res_from_csr && (raw_ed_1 || raw_ed_2))  // csr-use stall
-                     || (ms_valid && ms_res_from_csr && (raw_md_1 || raw_md_2)); // csr-use stall
+assign ds_stall       = es_valid && es_res_from_mem && (raw_ed_1 || raw_ed_2)  // load-use stall
+                     || ms_valid && ms_res_from_mem && (raw_md_1 || raw_md_2) && ~ms_data_sram_data_ok
+                     || es_valid && es_res_from_csr && (raw_ed_1 || raw_ed_2)  // csr-use stall
+                     || ms_valid && ms_res_from_csr && (raw_md_1 || raw_md_2); // csr-use stall
 assign ds_ready_go_r  = !ds_flush && !ds_stall;
 assign ds_ready_go    = (ds_ready_go_r === 1'bx) ? 1'b1 : ds_ready_go_r;
 assign ds_allowin     = !ds_valid || ds_ready_go && es_allowin || ds_flush;
@@ -246,10 +250,12 @@ always @(posedge clk) begin
     end
 end
 
-assign pc          = fs_to_ds_bus_r[31: 0];
-assign inst        = fs_to_ds_bus_r[63:32];
-assign fs_excp     = fs_to_ds_bus_r[64:64];
-assign fs_excp_num = fs_to_ds_bus_r[80:65];
+assign {
+    pc,
+    inst,
+    fs_excp,
+    fs_excp_num
+} = fs_to_ds_bus_r;
 
 assign op_31_26 = inst[31:26];
 assign op_25_22 = inst[25:22];
@@ -412,17 +418,22 @@ assign overflow = (rj_value[31] ^ rkd_value[31]) & (rj_value[31] ^ result[31]);
 assign rj_eq_rd  = (rj_value == rkd_value);
 assign rj_lt_rd  = result[31] ^ overflow;
 assign rj_ltu_rd = sign;
-assign br_taken  = ds_valid && ( inst_jirl | inst_b | inst_bl
-                  | inst_beq  &  rj_eq_rd
-                  | inst_bne  & ~rj_eq_rd
-                  | inst_blt  &  rj_lt_rd
-                  | inst_bge  & ~rj_lt_rd
-                  | inst_bltu &  rj_ltu_rd
-                  | inst_bgeu & ~rj_ltu_rd);
+assign br_taken  = ds_valid && (inst_jirl | inst_b | inst_bl
+                              | inst_beq  &  rj_eq_rd
+                              | inst_bne  & ~rj_eq_rd
+                              | inst_blt  &  rj_lt_rd
+                              | inst_bge  & ~rj_lt_rd
+                              | inst_bltu &  rj_ltu_rd
+                              | inst_bgeu & ~rj_ltu_rd);
+assign br_stall  = es_valid && es_res_from_mem && (raw_ed_1 || raw_ed_2)  // load-use stall
+                || ms_valid && ms_res_from_mem && (raw_md_1 || raw_md_2) && ~ms_data_sram_data_ok
 assign br_target = inst_jirl ? rj_value + imm : pc + imm;
 
-assign br_bus[32:32] = br_taken;
-assign br_bus[31: 0] = br_target;
+assign br_bus = {
+    br_taken,
+    br_stall,
+    br_target
+};
 
 assign excp_int = has_int;
 assign excp_sys = inst_syscall;
@@ -456,7 +467,8 @@ assign {
     ms_dest,
     ms_final_result,
     ms_res_from_mem,
-    ms_res_from_csr
+    ms_res_from_csr,
+    ms_data_sram_data_ok
 } = ms_forward;
 
 assign {

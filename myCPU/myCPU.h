@@ -7,7 +7,7 @@
     `define ES_TO_MS_BUS_WD 249
     `define MS_TO_WS_BUS_WD 200
 
-    `define BR_BUS_WD 33
+    `define BR_BUS_WD 34
     `define WB_BUS_WD 38
 
     /* forward */
