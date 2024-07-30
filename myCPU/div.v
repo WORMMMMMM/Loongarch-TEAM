@@ -1,17 +1,19 @@
-//x/y   //执行需要34个周期
+/* x/y  34 cycles */
+
 module div(
-    input div_clk, reset,
-    input div,
-    input div_signed,
-    input [31:0] x, y,
-    output [31:0] s, r,
-    output complete
-    );
+    input  div_clk,
+    input  reset,
+    input  div,
+    input  div_signed,
+    output complete,
+    input  [31:0] x, y,
+    output [31:0] s, r
+);
 
 reg [32:0] UnsignS;
 reg [32:0] UnsignR;
 reg [32:0] tmp_r;
-reg [7:0] count;
+reg [ 7:0] count;
 wire [32:0] tmp_d;
 wire [32:0] result_r;
 wire [32:0] UnsignX, UnsignY;

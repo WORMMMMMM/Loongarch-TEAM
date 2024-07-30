@@ -1,81 +1,95 @@
 `include "myCPU.h"
 
 module mem_stage(
-    input                          clk           ,
-    input                          reset         ,
-    //allowin
-    input                          ws_allowin    ,
-    output                         ms_allowin    ,
-    //from es
-    input                          es_to_ms_valid,
-    input  [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus  ,
-    //to ws
-    output                         ms_to_ws_valid,
-    output [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus  ,
-    //forward to ds
-    output [`MS_FORWARD_WD   -1:0] ms_forward    ,
-    //div    
-    input  [31:0]                  div_result    ,
-    input  [31:0]                  mod_result    ,
-    input  [63:0]                  mul_result    ,
-    //from data-sram
-    input  [31                 :0] data_sram_rdata,
-    input                          data_sram_data_ok
+    input  clk,
+    input  reset,
+
+    // allowin
+    input  ws_allowin,
+    output ms_allowin,
+
+    // from es
+    input  es_to_ms_valid,
+    input  [`ES_TO_MS_BUS_WD-1:0] es_to_ms_bus,
+
+    // to ws
+    output ms_to_ws_valid,
+    output [`MS_TO_WS_BUS_WD-1:0] ms_to_ws_bus,
+
+    // forward to ds
+    output [`MS_FORWARD_WD-1:0] ms_forward,
+
+    // div    
+    input  [31:0] div_result,
+    input  [31:0] mod_result,
+    input  [63:0] mul_result,
+
+    // from data-sram
+    input  [31:0] data_sram_rdata,
+    input  data_sram_data_ok,
+    
+    input  excp_flush,
+    input  ertn_flush,
+    output ms_ex
 );
 
-/* --------------  Signal interface  -------------- */
-//ES to MS bus
-reg [`ES_TO_MS_BUS_WD -1:0] es_to_ms_bus_r;
-wire        ms_res_from_mem;
-wire        ms_gr_we;
-wire [ 4:0] ms_dest;
-wire [31:0] ms_alu_result;
-wire [31:0] ms_pc;
-wire [ 1:0] ms_addr_lowbits;
-wire        ms_mul_div_sign;
-wire [ 3:0] ms_mul_div_op;
-wire        ms_op_mem = ms_op_st_w || ms_op_st_h || ms_op_st_b || ms_op_ld_w || ms_op_ld_hu || ms_op_ld_h || ms_op_ld_bu || ms_op_ld_b;
-assign ms_pc = es_to_ms_bus_r[31:0];
-assign ms_alu_result = es_to_ms_bus_r[63:32];
-assign ms_dest = es_to_ms_bus_r[68:64];
-assign ms_gr_we = es_to_ms_bus_r[69];
-assign ms_res_from_mem = es_to_ms_bus_r[70];
-assign ms_op_st_h = es_to_ms_bus_r[71];
-assign ms_op_st_b = es_to_ms_bus_r[72];
-assign ms_op_st_w = es_to_ms_bus_r[73];
-assign ms_op_ld_hu = es_to_ms_bus_r[74];
-assign ms_op_ld_h = es_to_ms_bus_r[75];
-assign ms_op_ld_bu = es_to_ms_bus_r[76];
-assign ms_op_ld_b = es_to_ms_bus_r[77];
-assign ms_op_ld_w = es_to_ms_bus_r[78];
-assign ms_mem_we = es_to_ms_bus_r[79];
-assign ms_addr_lowbits = es_to_ms_bus_r[81:80];
-assign ms_mul_div_sign = es_to_ms_bus_r[82];
-assign ms_mul_div_op = es_to_ms_bus_r[86:83];
+/* handshaking */
+wire ms_flush;
+wire ms_stall;
+wire ms_ready_go;
+reg  ms_valid;
+reg [`ES_TO_MS_BUS_WD-1:0] es_to_ms_bus_r;
 
-//MS to WS bus
+wire [31:0] ms_pc;
+wire        ms_op_ld_b;
+wire        ms_op_ld_h;
+wire        ms_op_ld_w;
+wire        ms_op_st_b;
+wire        ms_op_st_h;
+wire        ms_op_st_w;
+wire        ms_op_ld_bu;
+wire        ms_op_ld_hu;
+wire        ms_op_ertn;
+wire [ 4:0] ms_dest;
+wire        ms_gr_we;
+wire        ms_res_from_cnt;
+wire        ms_res_from_mem;
+wire        ms_res_from_csr;
+wire [ 1:0] ms_addr_lowbits;
+wire [ 3:0] ms_mul_div_op;
+wire        ms_mul_div_sign;
+wire [31:0] es_final_result;
+wire [31:0] timer_value;
+
 wire [31:0] mem_result;
 wire [31:0] ms_final_result;
 
-assign ms_to_ws_bus [31:0] = ms_pc;
-assign ms_to_ws_bus [63:32] = ms_final_result;
-assign ms_to_ws_bus [68:64] = ms_dest;
-assign ms_to_ws_bus [69] = ms_gr_we;
+wire [ 7:0] mem_byte_data;
+wire [15:0] mem_halfword_data;
 
-reg         ms_valid;
-wire        ms_ready_go;
-//forward to DS
-assign ms_forward [0] = ms_valid;//following the advice of the book
-assign ms_forward [1] = ms_gr_we;
-assign ms_forward [6:2] = ms_dest;
-assign ms_forward [38:7] = ms_final_result;
-assign ms_forward [39] = ms_res_from_mem;
-assign ms_forward [71:40] = ms_pc;
-assign ms_forward [72] = data_sram_data_ok;
-/*----------------- Handshaking-----------------*/                      
+// SRAM data buffer
+reg  [32:0] data_sram_rdata_buf;
+reg         data_sram_rdata_buf_valid;
+wire [32:0] final_data_sram_rdata;
 
-assign ms_ready_go    = ms_op_mem?(data_sram_data_ok||data_sram_rdata_buf_valid):1'b1;
-assign ms_allowin     = !ms_valid || ms_ready_go && ws_allowin;
+/* exception */
+wire es_excp;
+wire ms_excp;
+wire [15:0] es_excp_num;
+wire [15:0] ms_excp_num;
+wire [31:0] err_addr;
+
+/* csr */
+wire csr_we;
+wire [13:0] csr_num;
+wire [31:0] csr_wmask;
+wire [31:0] csr_wdata;
+
+
+assign ms_flush       = excp_flush || ertn_flush;
+assign ms_stall       = ms_res_from_mem && !data_sram_data_ok && !data_sram_rdata_buf_valid;
+assign ms_ready_go    = !ms_flush && !ms_stall;
+assign ms_allowin     = !ms_valid || ms_ready_go && ws_allowin || ms_flush;
 assign ms_to_ws_valid = ms_valid && ms_ready_go;
 always @(posedge clk) begin
     if (reset) begin
@@ -90,18 +104,35 @@ always @(posedge clk) begin
     end
 end
 
-
-/* --------------  MEM read interface  -------------- */
-
-wire [7:0]  mem_byte_data;
-wire [15:0] mem_halfword_data;
-
-// SRAM data buffer
-reg  [32:0] data_sram_rdata_buf;
-reg        data_sram_rdata_buf_valid;
-wire [32:0] final_data_sram_rdata;
-
-wire data_sram_data_ok = 1'b1;
+assign {
+    ms_pc,
+    ms_op_ld_b,
+    ms_op_ld_h,
+    ms_op_ld_w,
+    ms_op_st_b,
+    ms_op_st_h,
+    ms_op_st_w,
+    ms_op_ld_bu,
+    ms_op_ld_hu,
+    ms_op_ertn,
+    ms_dest,
+    ms_gr_we,
+    ms_res_from_cnt,
+    ms_res_from_mem,
+    ms_res_from_csr,
+    ms_addr_lowbits,
+    ms_mul_div_op,
+    ms_mul_div_sign,
+    es_final_result,
+    timer_value,
+    es_excp,
+    es_excp_num,
+    err_addr,
+    csr_we,
+    csr_num,
+    csr_wmask,
+    csr_wdata
+} = es_to_ms_bus_r;            
 
 always @(posedge clk) begin
     if (reset)
@@ -133,20 +164,51 @@ assign mem_byte_data = {8{addr00}} & final_data_sram_rdata[7:0]   |
                        {8{addr11}} & final_data_sram_rdata[31:24];
 
 // mem_halfword_data mux
-assign mem_halfword_data = {16{addr00}} & final_data_sram_rdata[15:0] |
+assign mem_halfword_data = {16{addr00}} & final_data_sram_rdata[15: 0] |
                            {16{addr10}} & final_data_sram_rdata[31:16];
 // mem_result mux
-assign mem_result = {32{ms_op_ld_w}}  & final_data_sram_rdata                                 |
-                    {32{ms_op_ld_b}}  & {{24{mem_byte_data[7]}}, mem_byte_data}         |
-                    {32{ms_op_ld_bu}} & {24'b0, mem_byte_data}                          |
-                    {32{ms_op_ld_h}}  & {{16{mem_halfword_data[15]}}, mem_halfword_data}|
+assign mem_result = {32{ms_op_ld_w}}  & final_data_sram_rdata                            |
+                    {32{ms_op_ld_b}}  & {{24{mem_byte_data[7]}}, mem_byte_data}          |
+                    {32{ms_op_ld_bu}} & {24'b0, mem_byte_data}                           |
+                    {32{ms_op_ld_h}}  & {{16{mem_halfword_data[15]}}, mem_halfword_data} |
                     {32{ms_op_ld_hu}} & {16'b0, mem_halfword_data};
 
+assign ms_final_result = ({32{ms_res_from_cnt }} & timer_value      ) |
+                         ({32{ms_res_from_mem }} & mem_result       ) |
+                         ({32{ms_mul_div_op[0]}} & mul_result[31:0] ) |
+                         ({32{ms_mul_div_op[1]}} & mul_result[63:32]) |
+                         ({32{ms_mul_div_op[2]}} & div_result       ) |
+                         ({32{ms_mul_div_op[3]}} & mod_result       ) |
+                         ({32{!ms_mul_div_sign && !ms_res_from_mem}} & es_final_result);
 
-assign ms_final_result = ({32{ms_res_from_mem }} & mem_result       )  |
-                         ({32{ms_mul_div_op[0]}} & mul_result[31:0] )  |
-                         ({32{ms_mul_div_op[1]}} & mul_result[63:32])  |
-                         ({32{ms_mul_div_op[2]}} & div_result       )  |
-                         ({32{ms_mul_div_op[3]}} & mod_result       )  |
-                         ({32{!ms_mul_div_sign && !ms_res_from_mem}} & ms_alu_result);
+assign ms_excp     = es_excp;
+assign ms_excp_num = es_excp_num;
+
+assign ms_ex = ms_valid && (ms_excp || ms_op_ertn);
+
+assign ms_forward = {
+    ms_valid,
+    ms_gr_we,
+    ms_dest,
+    ms_final_result,
+    ms_res_from_mem,
+    ms_res_from_csr
+};
+
+assign ms_to_ws_bus = {
+    ms_pc,
+    ms_op_ertn,
+    ms_dest,
+    ms_gr_we,
+    ms_res_from_csr,
+    ms_final_result,
+    ms_excp,
+    ms_excp_num,
+    err_addr,
+    csr_we,
+    csr_num,
+    csr_wmask,
+    csr_wdata
+};
+
 endmodule
