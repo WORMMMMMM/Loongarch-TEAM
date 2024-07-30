@@ -15,6 +15,7 @@ module regcsr(
     input  [ 5:0] ecode,
     input  [ 2:0] esubcode,
     input  [31:0] epc,
+    input  [31:0] eaddr,
 
     output [31:0] era,
     output [31:0] eentry,
@@ -172,11 +173,16 @@ always @(posedge clk) begin
 end
 
 always @(posedge clk) begin
-    if (csr_badv_we) begin
-        csr_badv <= csr_wmask & csr_wdata | ~csr_wmask & csr_badv;
+    if (excp_flush) begin
+        if (ecode == `ECODE_ADE) begin
+            csr_badv <= epc;
+        end
+        else if (ecode == `ECODE_ALE) begin
+            csr_badv <= eaddr;
+        end
     end
-    else if (excp_flush && ecode == `ECODE_ADE) begin
-        csr_badv <= epc;
+    else if (csr_badv_we) begin
+        csr_badv <= csr_wmask & csr_wdata | ~csr_wmask & csr_badv;
     end
 end
 

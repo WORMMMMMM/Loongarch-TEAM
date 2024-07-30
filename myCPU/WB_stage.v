@@ -47,6 +47,7 @@ wire [31:0] ms_final_result;
 wire [31:0] ws_final_result;
 
 /* exception */
+wire [31:0] err_addr;
 wire ms_excp;
 wire ws_excp;
 wire [15:0] ms_excp_num;
@@ -92,6 +93,7 @@ assign {
     ms_final_result,
     ms_excp,
     ms_excp_num,
+    err_addr,
     csr_we,
     csr_num,
     csr_wmask,
@@ -107,8 +109,6 @@ assign debug_wb_rf_wdata = rf_wdata;
 assign ws_excp     = ms_excp;
 assign ws_excp_num = ms_excp_num;
 
-// assign ws_ex      = ws_valid && ws_excp || ws_excp_num[15] !== 1'bx && ws_excp_num[15];
-// assign excp_flush = ws_valid && ws_excp || ws_excp_num[15] !== 1'bx && ws_excp_num[15];
 assign excp_flush = ws_valid && ws_excp;
 assign ertn_flush = ws_valid && ws_ertn;
 
@@ -148,6 +148,7 @@ regcsr u_regcsr(
     .ecode       (csr_ecode   ),
     .esubcode    (csr_esubcode),
     .epc         (ws_pc       ),
+    .eaddr       (err_addr    ),
 
     .era         (era         ),
     .eentry      (eentry      ),

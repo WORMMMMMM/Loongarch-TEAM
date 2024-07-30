@@ -4,8 +4,8 @@
     /* bus */
     `define FS_TO_DS_BUS_WD 81
     `define DS_TO_ES_BUS_WD 268
-    `define ES_TO_MS_BUS_WD 217
-    `define MS_TO_WS_BUS_WD 168
+    `define ES_TO_MS_BUS_WD 249
+    `define MS_TO_WS_BUS_WD 200
 
     `define BR_BUS_WD 33
     `define WB_BUS_WD 38

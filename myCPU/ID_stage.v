@@ -405,7 +405,7 @@ assign dest  = inst_bl      ? 5'h01 :
 assign gr_we = ~inst_st_w & ~inst_st_b & ~inst_st_h & ~inst_b & ~inst_br & ~inst_syscall & ~inst_ertn;
 assign res_from_cnt = inst_rdcntvl_w | inst_rdcntvh_w;
 assign res_from_mem = inst_ld_b | inst_ld_h | inst_ld_w | inst_ld_bu | inst_ld_hu;
-assign res_from_csr = inst_csrrd | inst_csrwr | inst_csrxchg;
+assign res_from_csr = inst_rdcntid | inst_csrrd | inst_csrwr | inst_csrxchg;
 
 assign {sign, result} = {1'b0, rj_value} + {1'b1, ~rkd_value} + 33'd1;
 assign overflow = (rj_value[31] ^ rkd_value[31]) & (rj_value[31] ^ result[31]);

@@ -79,6 +79,7 @@ wire es_excp;
 wire ms_excp;
 wire [15:0] es_excp_num;
 wire [15:0] ms_excp_num;
+wire [31:0] err_addr;
 
 /* csr */
 wire csr_we;
@@ -128,6 +129,7 @@ assign {
     timer_value,
     es_excp,
     es_excp_num,
+    err_addr,
     csr_we,
     csr_num,
     csr_wmask,
@@ -184,7 +186,7 @@ assign ms_final_result = ({32{ms_res_from_cnt }} & timer_value      ) |
 assign ms_excp     = es_excp;
 assign ms_excp_num = es_excp_num;
 
-assign ms_ex       = ms_valid && (ms_excp || ms_op_ertn);
+assign ms_ex = ms_valid && (ms_excp || ms_op_ertn);
 
 assign ms_forward = {
     ms_valid,
@@ -204,6 +206,7 @@ assign ms_to_ws_bus = {
     ms_final_result,
     ms_excp,
     ms_excp_num,
+    err_addr,
     csr_we,
     csr_num,
     csr_wmask,

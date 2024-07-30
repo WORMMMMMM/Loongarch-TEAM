@@ -92,11 +92,13 @@ reg  [63:0] timer;
 wire [31:0] timer_value;
 
 /* exception */
+wire [31:0] err_addr;
 wire excp_ale;
 wire ds_excp;
 wire es_excp;
 wire [15:0] ds_excp_num;
-wire [15:0] ex_excp_num;
+wire [15:0] es_excp_num;
+
 
 /* csr */
 wire csr_we;
@@ -172,10 +174,10 @@ assign es_mul_enable = (es_mul_div_op[0] | es_mul_div_op[1]) & es_valid;
 assign es_div_stall  = es_div_enable & ~div_complete;
 
 alu u_alu(
-    .alu_op       (es_alu_op    ),
-    .alu_src1     (es_alu_src1  ),
-    .alu_src2     (es_alu_src2  ),
-    .alu_result   (es_alu_result)
+    .alu_op      (es_alu_op    ),
+    .alu_src1    (es_alu_src1  ),
+    .alu_src2    (es_alu_src2  ),
+    .alu_result  (es_alu_result)
 );
 
 assign es_final_result = es_alu_result;
@@ -223,9 +225,11 @@ assign timer_value = es_op_rdcntvl_w ? timer[31: 0] :
 assign excp_ale = (es_op_ld_h | es_op_st_h | es_op_ld_hu) & data_sram_addr[0] != 1'b0
                 | (es_op_ld_w | es_op_st_w) & data_sram_addr[1:0] != 2'b00;
 assign es_excp     = ds_excp | excp_ale;
-assign ex_excp_num = ds_excp_num | {9'b0, excp_ale, 6'b0};
+assign es_excp_num = ds_excp_num | {9'b0, excp_ale, 6'b0};
 
-assign es_ex       = es_valid && (es_excp || es_op_ertn);
+assign err_addr = data_sram_addr;
+
+assign es_ex = es_valid && (es_excp || es_op_ertn);
 
 assign es_forward = {
     es_valid,
@@ -236,7 +240,7 @@ assign es_forward = {
     es_res_from_csr
 };
 
-assign es_to_ms_bus ={
+assign es_to_ms_bus = {
     es_pc,
     es_op_ld_b,
     es_op_ld_h,
@@ -258,7 +262,8 @@ assign es_to_ms_bus ={
     es_final_result,
     timer_value,
     es_excp,
-    ex_excp_num,
+    es_excp_num,
+    err_addr,
     csr_we,
     csr_num,
     csr_wmask,
