@@ -23,22 +23,21 @@ module if_stage(
     output [ 3:0] inst_sram_wstrb,
     output [31:0] inst_sram_addr,
     output [31:0] inst_sram_wdata,
-    input  [31:0] inst_sram_rdata
+    input  [31:0] inst_sram_rdata,
     output [ 1:0] inst_sram_size,
     input  inst_sram_addr_ok,
     input  inst_sram_data_ok,
-    output inst_sram_wr,
+    output inst_sram_wr
 );
 
 wire br_taken_r;
-reg  br_taken_buf;
 wire br_taken;
 wire br_flush;
-wire br_stall;
 wire [31:0] br_target;
 
+wire ps_stall;
 wire ps_ready_go;
-wire to_fs_valid;
+wire ps_to_fs_valid;
 
 wire fs_flush;
 wire fs_stall;
@@ -47,14 +46,11 @@ wire fs_allowin;
 reg  fs_valid;
 
 wire [31:0] seq_pc;
-reg  [31:0] nextpc_buf;
 wire [31:0] nextpc;
 
 reg  [31:0] fs_pc;
 reg  [31:0] fs_inst_buf;
 wire [31:0] fs_inst;
-reg  fs_inst_buf_valid;
-reg  mid_handshake;
 
 wire excp_adef;
 wire fs_excp;
@@ -64,21 +60,27 @@ wire [15: 0] fs_excp_num;
 // pre-IF stage
 assign {
     br_taken_r,
-    br_stall,
     br_target
 } = br_bus;
 assign br_taken = br_taken_r === 1'bx ? 1'b0 :  br_taken_r;
 assign br_flush = br_taken && ds_allowin;
 
-assign ps_ready_go = inst_sram_req && inst_sram_addr_ok;
-assign to_fs_valid = ps_ready_go;
+assign ps_stall       = !(inst_sram_req && inst_sram_data_ok);
+assign ps_ready_go    = !ps_stall;
+assign ps_to_fs_valid = ps_ready_go;
 
 assign seq_pc = fs_pc + 32'h4;
-assign nextpc = excp_flush   ? eentry :
-                ertn_flush   ? era :
-                br_taken_buf ? nextpc_buf :
-                br_taken     ? br_target :
+assign nextpc = excp_flush ? eentry :
+                ertn_flush ? era :
+                br_taken   ? br_target :
                 seq_pc;
+
+assign inst_sram_req   = fs_allowin;
+assign inst_sram_wstrb = 4'b0;
+assign inst_sram_addr  = nextpc;
+assign inst_sram_wdata = 32'b0;
+assign inst_sram_size  = 2'b10;
+assign inst_sram_wr    = 1'b0;
 
 
 // IF stage
@@ -92,77 +94,27 @@ always @(posedge clk) begin
         fs_valid <= 1'b0;
     end
     else if (fs_allowin) begin
-        fs_valid <= to_fs_valid;
+        fs_valid <= ps_to_fs_valid;
+    end
+
+    if (reset) begin
+        fs_pc <= 32'h1bfffffc;  //trick: to make nextpc be 0xbfc00000 during reset
+    end
+    else if (ps_to_fs_valid && fs_allowin) begin
+        fs_pc <= nextpc;
     end
 end
+
 always @(posedge clk) begin
     if (reset) begin
-        fs_pc       <= 32'h1bfffffc;  //trick: to make nextpc be 0xbfc00000 during reset
-    end
-    else if (to_fs_valid && fs_allowin) begin
-        fs_pc       <= nextpc;
-    end
-end
-
-always @(posedge clk) begin
-    if (reset)
-        mid_handshake <= 1'b0;
-    else if (inst_sram_data_ok)
-        mid_handshake <= 1'b0;
-    else if (inst_sram_req && inst_sram_addr_ok)
-        mid_handshake <= 1'b1;
-end
-
-always @(posedge clk) begin
-    if(reset) begin
         fs_inst_buf <= 32'b0; 
     end
-    else if(inst_sram_data_ok && ~ds_allowin) begin
+    else if (inst_sram_data_ok) begin
         fs_inst_buf <= inst_sram_rdata;
     end
 end
 
-always @(posedge clk) begin
-    if(reset) begin
-        fs_inst_buf_valid <= 1'b0;
-    end
-    else if(fs_ready_go && ds_allowin) begin
-        fs_inst_buf_valid <= 1'b0;
-    end
-    else if(inst_sram_data_ok && ~ds_allowin) begin
-        fs_inst_buf_valid <= 1'b1;
-    end
-end
-
-always @(posedge clk) begin
-    if(reset) begin
-        nextpc_buf <= 32'b0;
-    end
-    else if(br_taken && ~br_stall) begin
-        nextpc_buf <= nextpc;
-    end
-end
-
-always @(posedge clk)begin
-    if(reset) begin
-        br_taken_buf <= 1'b0;
-    end
-    else if(br_taken_buf && inst_sram_req && inst_sram_addr_ok && fs_allowin) begin
-        br_taken_buf <= 1'b0;
-    end 
-    else if(br_taken && ~br_stall && ~(inst_sram_req && inst_sram_addr_ok)) begin
-        br_taken_buf <= br_taken;
-    end
-end
-
-assign inst_sram_req   = fs_allowin && ~br_stall;
-assign inst_sram_wstrb = 4'b0;
-assign inst_sram_addr  = nextpc;
-assign inst_sram_wdata = 32'b0;
-assign inst_sram_size  = 2'b10;
-assign inst_sram_wr    = 1'b0;
-
-assign fs_inst = fs_inst_buf_valid ? fs_inst_buf : inst_sram_rdata;
+assign fs_inst = fs_inst_buf;
 
 assign excp_adef = nextpc[1:0] != 2'b00;
 assign fs_excp     = excp_adef;
@@ -174,5 +126,16 @@ assign fs_to_ds_bus = {
     fs_excp,
     fs_excp_num
 };
+
+
+reg  mid_handshake;
+always @(posedge clk) begin
+    if (reset)
+        mid_handshake <= 1'b0;
+    else if (inst_sram_data_ok)
+        mid_handshake <= 1'b0;
+    else if (inst_sram_req && inst_sram_addr_ok)
+        mid_handshake <= 1'b1;
+end
 
 endmodule
