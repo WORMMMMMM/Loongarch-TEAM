@@ -169,7 +169,6 @@ wire rj_eq_rd;
 wire rj_lt_rd;
 wire rj_ltu_rd;
 wire br_taken;
-wire br_stall;
 wire [31:0] br_target;
 
 /* exception */
@@ -230,7 +229,7 @@ wire raw;
 
 assign ds_flush       = excp_flush || ertn_flush;
 assign ds_stall       = es_valid && es_res_from_mem && (raw_ed_1 || raw_ed_2)  // load-use stall
-                     || ms_valid && ms_res_from_mem && (raw_md_1 || raw_md_2) && ~ms_data_sram_data_ok
+                     || ms_valid && ms_res_from_mem && (raw_md_1 || raw_md_2) && !ms_data_sram_data_ok
                      || es_valid && es_res_from_csr && (raw_ed_1 || raw_ed_2)  // csr-use stall
                      || ms_valid && ms_res_from_csr && (raw_md_1 || raw_md_2); // csr-use stall
 assign ds_ready_go_r  = !ds_flush && !ds_stall;
@@ -425,13 +424,10 @@ assign br_taken  = ds_valid && (inst_jirl | inst_b | inst_bl
                               | inst_bge  & ~rj_lt_rd
                               | inst_bltu &  rj_ltu_rd
                               | inst_bgeu & ~rj_ltu_rd);
-assign br_stall  = es_valid && es_res_from_mem && (raw_ed_1 || raw_ed_2)  // load-use stall
-                || ms_valid && ms_res_from_mem && (raw_md_1 || raw_md_2) && ~ms_data_sram_data_ok
 assign br_target = inst_jirl ? rj_value + imm : pc + imm;
 
 assign br_bus = {
     br_taken,
-    br_stall,
     br_target
 };
 

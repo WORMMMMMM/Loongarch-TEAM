@@ -167,7 +167,7 @@ exe_stage exe_stage(
     .data_sram_req     (data_sram_req    ),
     .data_sram_wstrb   (data_sram_wstrb  ),
     .data_sram_addr    (data_sram_addr   ),
-    .data_sram_wdata   (data_sram_wdata  )
+    .data_sram_wdata   (data_sram_wdata  ),
     .data_sram_size    (data_sram_size   ),
     .data_sram_addr_ok (data_sram_addr_ok),
     .data_sram_wr      (data_sram_wr     ),

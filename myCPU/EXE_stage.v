@@ -164,7 +164,7 @@ assign {
 
 /* --------------  ALU interface  -------------- */
 assign es_alu_src1 = es_src1_is_pc  ? es_pc[31:0] :
-                     es_rj_value;         
+                     es_rj_value;
 assign es_alu_src2 = es_src2_is_4   ? 32'h0004 :
                      es_src2_is_imm ? es_imm :
                      es_rkd_value;
@@ -204,7 +204,7 @@ assign data_sram_wdata = {32{es_op_st_b}} & {4{es_rkd_value[ 7:0]}} |
 assign data_sram_size  = {2{es_op_st_b || es_op_ld_b || es_op_ld_bu}} & 2'b00 |
                          {2{es_op_st_h || es_op_ld_h || es_op_ld_hu}} & 2'b01 |
                          {2{es_op_st_w || es_op_ld_w}}                & 2'b10;
-assign data_sram_wr    = |data_sram_wstrx;
+assign data_sram_wr    = |data_sram_wstrb;
 
 always @(posedge clk) begin
     if (reset) begin
