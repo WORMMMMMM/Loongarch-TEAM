@@ -184,7 +184,7 @@ assign ms_forward = {
     ms_final_result,
     ms_res_from_mem,
     ms_res_from_csr,
-    ms_data_sram_data_ok
+    data_sram_data_ok
 };
 
 assign ms_to_ws_bus = {
