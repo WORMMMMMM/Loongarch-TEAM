@@ -153,7 +153,6 @@ always @(posedge clk) begin
         end
         else if (csr_tcfg[`CSR_TCFG_EN] && csr_tval == 32'h0) begin
             csr_estat[11:11] <= 1'b1;
-            csr_tcfg[`CSR_TCFG_EN] <= csr_tcfg[`CSR_TCFG_PER];
         end
 
         if (excp_flush) begin
@@ -222,6 +221,9 @@ end
 always @(posedge clk) begin
     if (reset) begin
         csr_tcfg[`CSR_TCFG_EN] <= 1'b0;
+    end
+    else if (csr_tcfg[`CSR_TCFG_EN] && csr_tval == 32'h0) begin
+        csr_tcfg[`CSR_TCFG_EN] <= csr_tcfg[`CSR_TCFG_PER];
     end
     else if (csr_tcfg_we) begin
         csr_tcfg[`CSR_TCFG_EN   ] <= csr_wmask[`CSR_TCFG_EN   ] & csr_wdata[`CSR_TCFG_EN   ] | ~csr_wmask[`CSR_TCFG_EN   ] & csr_tcfg[`CSR_TCFG_EN   ];
