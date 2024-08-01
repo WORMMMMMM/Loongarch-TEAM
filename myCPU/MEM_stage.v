@@ -38,38 +38,44 @@ wire ms_flush;
 wire ms_stall;
 wire ms_ready_go;
 reg  ms_valid;
-reg [`ES_TO_MS_BUS_WD-1:0] es_to_ms_bus_r;
+reg  [`ES_TO_MS_BUS_WD-1:0] es_to_ms_bus_r;
 
 wire [31:0] ms_pc;
-wire        ms_op_ld_b;
-wire        ms_op_ld_h;
-wire        ms_op_ld_w;
-wire        ms_op_st_b;
-wire        ms_op_st_h;
-wire        ms_op_st_w;
-wire        ms_op_ld_bu;
-wire        ms_op_ld_hu;
-wire        ms_op_ertn;
+wire ms_inst_ld_b;
+wire ms_inst_ld_h;
+wire ms_inst_ld_w;
+wire ms_inst_st_b;
+wire ms_inst_st_h;
+wire ms_inst_st_w;
+wire ms_inst_ld_bu;
+wire ms_inst_ld_hu;
+wire ms_inst_ertn;
+
 wire [ 4:0] ms_dest;
-wire        ms_rf_we;
-wire        ms_res_from_cnt;
-wire        ms_res_from_mem;
-wire        ms_res_from_csr;
-wire [ 1:0] ms_addr_lowbits;
-wire [ 3:0] ms_mul_div_op;
-wire        ms_mul_div_sign;
-wire [31:0] es_final_result;
-wire [31:0] timer_value;
+wire ms_rf_we;
+wire ms_res_from_cnt;
+wire ms_res_from_mem;
+wire ms_res_from_csr;
 
 reg  [32:0] data_sram_rdata_buf;
 reg  data_sram_rdata_buf_valid;
 wire [32:0] final_data_sram_rdata;
 
-wire [31:0] mem_result;
-wire [31:0] ms_final_result;
-
+wire [ 1:0] ms_addr_lowbits;
+wire addr00;
+wire addr01;
+wire addr10;
+wire addr11;
 wire [ 7:0] mem_byte_data;
 wire [15:0] mem_halfword_data;
+
+wire [ 3:0] ms_mul_div_op;
+wire ms_mul_div_sign;
+
+wire [31:0] timer_result;
+wire [31:0] mem_result;
+wire [31:0] es_final_result;
+wire [31:0] ms_final_result;
 
 /* exception */
 wire es_excp;
@@ -105,25 +111,23 @@ end
 
 assign {
     ms_pc,
-    ms_op_ld_b,
-    ms_op_ld_h,
-    ms_op_ld_w,
-    ms_op_st_b,
-    ms_op_st_h,
-    ms_op_st_w,
-    ms_op_ld_bu,
-    ms_op_ld_hu,
-    ms_op_ertn,
+    ms_inst_ld_b,
+    ms_inst_ld_h,
+    ms_inst_ld_w,
+    ms_inst_st_b,
+    ms_inst_st_h,
+    ms_inst_st_w,
+    ms_inst_ld_bu,
+    ms_inst_ld_hu,
+    ms_inst_ertn,
     ms_dest,
     ms_rf_we,
-    ms_res_from_cnt,
     ms_res_from_mem,
     ms_res_from_csr,
     ms_addr_lowbits,
     ms_mul_div_op,
     ms_mul_div_sign,
     es_final_result,
-    timer_value,
     es_excp,
     es_excp_num,
     err_addr,
@@ -163,14 +167,13 @@ assign mem_byte_data = {8{addr00}} & final_data_sram_rdata[ 7: 0]
 assign mem_halfword_data = {16{addr00}} & final_data_sram_rdata[15: 0]
                          | {16{addr10}} & final_data_sram_rdata[31:16];
 // mem_result mux
-assign mem_result = {32{ms_op_ld_w}}  & final_data_sram_rdata
-                  | {32{ms_op_ld_b}}  & {{24{mem_byte_data[7]}}, mem_byte_data}
-                  | {32{ms_op_ld_bu}} & {24'b0, mem_byte_data}
-                  | {32{ms_op_ld_h}}  & {{16{mem_halfword_data[15]}}, mem_halfword_data}
-                  | {32{ms_op_ld_hu}} & {16'b0, mem_halfword_data};
+assign mem_result = {32{ms_inst_ld_w}}  & final_data_sram_rdata
+                  | {32{ms_inst_ld_b}}  & {{24{mem_byte_data[7]}}, mem_byte_data}
+                  | {32{ms_inst_ld_bu}} & {24'b0, mem_byte_data}
+                  | {32{ms_inst_ld_h}}  & {{16{mem_halfword_data[15]}}, mem_halfword_data}
+                  | {32{ms_inst_ld_hu}} & {16'b0, mem_halfword_data};
 
-assign ms_final_result = ({32{ms_res_from_cnt }} & timer_value      )
-                       | ({32{ms_res_from_mem }} & mem_result       )
+assign ms_final_result = ({32{ms_res_from_mem }} & mem_result       )
                        | ({32{ms_mul_div_op[0]}} & mul_result[31: 0])
                        | ({32{ms_mul_div_op[1]}} & mul_result[63:32])
                        | ({32{ms_mul_div_op[2]}} & div_result       )
@@ -180,7 +183,7 @@ assign ms_final_result = ({32{ms_res_from_cnt }} & timer_value      )
 assign ms_excp     = es_excp;
 assign ms_excp_num = es_excp_num;
 
-assign ms_ex = ms_valid && (ms_excp || ms_op_ertn);
+assign ms_ex = ms_valid && (ms_excp || ms_inst_ertn);
 
 assign ms_forward = {
     ms_valid,
@@ -194,7 +197,7 @@ assign ms_forward = {
 
 assign ms_to_ws_bus = {
     ms_pc,
-    ms_op_ertn,
+    ms_inst_ertn,
     ms_dest,
     ms_rf_we,
     ms_res_from_csr,
