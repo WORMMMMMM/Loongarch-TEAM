@@ -51,7 +51,7 @@ wire        ms_op_ld_bu;
 wire        ms_op_ld_hu;
 wire        ms_op_ertn;
 wire [ 4:0] ms_dest;
-wire        ms_gr_we;
+wire        ms_rf_we;
 wire        ms_res_from_cnt;
 wire        ms_res_from_mem;
 wire        ms_res_from_csr;
@@ -61,16 +61,15 @@ wire        ms_mul_div_sign;
 wire [31:0] es_final_result;
 wire [31:0] timer_value;
 
+reg  [32:0] data_sram_rdata_buf;
+reg  data_sram_rdata_buf_valid;
+wire [32:0] final_data_sram_rdata;
+
 wire [31:0] mem_result;
 wire [31:0] ms_final_result;
 
 wire [ 7:0] mem_byte_data;
 wire [15:0] mem_halfword_data;
-
-// SRAM data buffer
-reg  [32:0] data_sram_rdata_buf;
-reg         data_sram_rdata_buf_valid;
-wire [32:0] final_data_sram_rdata;
 
 /* exception */
 wire es_excp;
@@ -80,14 +79,14 @@ wire [15:0] ms_excp_num;
 wire [31:0] err_addr;
 
 /* csr */
-wire csr_we;
+wire ms_csr_we;
 wire [13:0] csr_num;
 wire [31:0] csr_wmask;
 wire [31:0] csr_wdata;
 
 
 assign ms_flush       = excp_flush || ertn_flush;
-assign ms_stall       = ms_res_from_mem && !data_sram_data_ok;
+assign ms_stall       = ms_res_from_mem && !data_sram_rdata_buf_valid && !ms_excp;
 assign ms_ready_go    = !ms_flush && !ms_stall;
 assign ms_allowin     = !ms_valid || ms_ready_go && ws_allowin || ms_flush;
 assign ms_to_ws_valid = ms_valid && ms_ready_go;
@@ -116,7 +115,7 @@ assign {
     ms_op_ld_hu,
     ms_op_ertn,
     ms_dest,
-    ms_gr_we,
+    ms_rf_we,
     ms_res_from_cnt,
     ms_res_from_mem,
     ms_res_from_csr,
@@ -128,18 +127,24 @@ assign {
     es_excp,
     es_excp_num,
     err_addr,
-    csr_we,
+    ms_csr_we,
     csr_num,
     csr_wmask,
     csr_wdata
 } = es_to_ms_bus_r;            
 
 always @(posedge clk) begin
-    if (reset)
+    if (reset) begin
         data_sram_rdata_buf <= 32'b0;
-    else if (data_sram_data_ok && ~ws_allowin)      // If data is back, WB stage do not allow in
-                                                    // Then write it into buffer, wait for allowin to rise
+        data_sram_rdata_buf_valid <= 1'b0;
+    end
+    else if (ms_ready_go && ws_allowin) begin
+        data_sram_rdata_buf_valid <= 1'b0;
+    end
+    else if (data_sram_data_ok) begin
         data_sram_rdata_buf <= data_sram_rdata;
+        data_sram_rdata_buf_valid <= 1'b1;
+    end
 end
 
 assign final_data_sram_rdata = data_sram_rdata_buf;
@@ -179,25 +184,25 @@ assign ms_ex = ms_valid && (ms_excp || ms_op_ertn);
 
 assign ms_forward = {
     ms_valid,
-    ms_gr_we,
+    ms_rf_we,
     ms_dest,
     ms_final_result,
     ms_res_from_mem,
     ms_res_from_csr,
-    ms_data_sram_data_ok
+    data_sram_rdata_buf_valid
 };
 
 assign ms_to_ws_bus = {
     ms_pc,
     ms_op_ertn,
     ms_dest,
-    ms_gr_we,
+    ms_rf_we,
     ms_res_from_csr,
     ms_final_result,
     ms_excp,
     ms_excp_num,
     err_addr,
-    csr_we,
+    ms_csr_we,
     csr_num,
     csr_wmask,
     csr_wdata

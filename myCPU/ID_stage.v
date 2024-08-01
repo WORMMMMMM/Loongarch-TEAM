@@ -156,7 +156,7 @@ wire mem_we;
 
 /* write back */
 wire [ 4:0] dest;
-wire gr_we;
+wire ds_rf_we;
 wire res_from_cnt;
 wire res_from_mem;
 wire res_from_csr;
@@ -182,29 +182,29 @@ wire [15:0] fs_excp_num;
 wire [15:0] ds_excp_num;
 
 /* csr */
-wire csr_we;
+wire ds_csr_we;
 wire [13:0] csr_num;
 wire [31:0] csr_wmask;
 wire [31:0] csr_wdata;
 
 /* hazard */
 wire es_valid;
-wire es_gr_we;
+wire es_rf_we;
 wire [ 4:0] es_dest;
 wire [31:0] es_final_result;
 wire es_res_from_mem;
 wire es_res_from_csr;
 
 wire ms_valid;
-wire ms_gr_we;
+wire ms_rf_we;
 wire [ 4:0] ms_dest;
 wire [31:0] ms_final_result;
 wire ms_res_from_mem;
 wire ms_res_from_csr;
-wire ms_data_sram_data_ok;
+wire ms_sram_data_ok;
 
 wire ws_valid;
-wire ws_gr_we;
+wire ws_rf_we;
 wire [ 4:0] ws_dest;
 wire [31:0] ws_final_result;
 
@@ -228,8 +228,8 @@ wire raw;
 
 
 assign ds_flush       = excp_flush || ertn_flush;
-assign ds_stall       = es_valid && es_res_from_mem && (raw_ed_1 || raw_ed_2)  // load-use stall
-                     || ms_valid && ms_res_from_mem && (raw_md_1 || raw_md_2) && !ms_data_sram_data_ok
+assign ds_stall       = es_valid && es_res_from_mem && (raw_ed_1 || raw_ed_2)                     // load-use stall
+                     || ms_valid && ms_res_from_mem && (raw_md_1 || raw_md_2) && !ms_sram_data_ok // load-use stall
                      || es_valid && es_res_from_csr && (raw_ed_1 || raw_ed_2)  // csr-use stall
                      || ms_valid && ms_res_from_csr && (raw_md_1 || raw_md_2); // csr-use stall
 assign ds_ready_go_r  = !ds_flush && !ds_stall;
@@ -407,7 +407,7 @@ assign mem_we = inst_st_b | inst_st_h | inst_st_w;
 assign dest  = inst_bl      ? 5'h01 :
                inst_rdcntid ? rj:
                rd;
-assign gr_we = ~inst_st_w & ~inst_st_b & ~inst_st_h & ~inst_b & ~inst_br & ~inst_syscall & ~inst_ertn;
+assign ds_rf_we = ~inst_st_w & ~inst_st_b & ~inst_st_h & ~inst_b & ~inst_br & ~inst_syscall & ~inst_ertn;
 assign res_from_cnt = inst_rdcntvl_w | inst_rdcntvh_w;
 assign res_from_mem = inst_ld_b | inst_ld_h | inst_ld_w | inst_ld_bu | inst_ld_hu;
 assign res_from_csr = inst_rdcntid | inst_csrrd | inst_csrwr | inst_csrxchg;
@@ -443,14 +443,14 @@ assign excp_ine = ~inst_add_w & ~inst_sub_w & ~inst_slt & ~inst_sltu & ~inst_nor
 assign ds_excp     = fs_excp | excp_int | excp_sys | excp_brk | excp_ine;
 assign ds_excp_num = fs_excp_num | {excp_int, 4'b0, excp_sys, excp_brk, excp_ine, 8'b0};
 
-assign csr_we    = inst_csrwr | inst_csrxchg;
+assign ds_csr_we    = inst_csrwr | inst_csrxchg;
 assign csr_num   = inst_rdcntid ? `CSR_TID : inst[23:10];
 assign csr_wmask = inst_csrxchg ? rj_value : 32'hffffffff;
 assign csr_wdata = rkd_value;
 
 assign {
     es_valid,
-    es_gr_we,
+    es_rf_we,
     es_dest,
     es_final_result,
     es_res_from_mem,
@@ -459,17 +459,17 @@ assign {
 
 assign {
     ms_valid,
-    ms_gr_we,
+    ms_rf_we,
     ms_dest,
     ms_final_result,
     ms_res_from_mem,
     ms_res_from_csr,
-    ms_data_sram_data_ok
+    ms_sram_data_ok
 } = ms_forward;
 
 assign {
     ws_valid,
-    ws_gr_we,
+    ws_rf_we,
     ws_dest,
     ws_final_result
 } = ws_forward;
@@ -483,12 +483,12 @@ assign no_src2 = inst_slli_w | inst_srli_w | inst_srai_w | inst_slti | inst_sltu
 assign src1 = no_src1 ? 5'd0 : rf_raddr1;
 assign src2 = no_src2 ? 5'd0 : rf_raddr2;
 
-assign raw_ed_1_r = es_valid && (src1 == es_dest) && (src1 != 5'h0) && es_gr_we;
-assign raw_ed_2_r = es_valid && (src2 == es_dest) && (src2 != 5'h0) && es_gr_we;
-assign raw_md_1_r = ms_valid && (src1 == ms_dest) && (src1 != 5'h0) && ms_gr_we;
-assign raw_md_2_r = ms_valid && (src2 == ms_dest) && (src2 != 5'h0) && ms_gr_we;
-assign raw_wd_1_r = ws_valid && (src1 == ws_dest) && (src1 != 5'h0) && ws_gr_we;
-assign raw_wd_2_r = ws_valid && (src2 == ws_dest) && (src2 != 5'h0) && ws_gr_we;
+assign raw_ed_1_r = es_valid && (src1 == es_dest) && (src1 != 5'h0) && es_rf_we;
+assign raw_ed_2_r = es_valid && (src2 == es_dest) && (src2 != 5'h0) && es_rf_we;
+assign raw_md_1_r = ms_valid && (src1 == ms_dest) && (src1 != 5'h0) && ms_rf_we;
+assign raw_md_2_r = ms_valid && (src2 == ms_dest) && (src2 != 5'h0) && ms_rf_we;
+assign raw_wd_1_r = ws_valid && (src1 == ws_dest) && (src1 != 5'h0) && ws_rf_we;
+assign raw_wd_2_r = ws_valid && (src2 == ws_dest) && (src2 != 5'h0) && ws_rf_we;
 
 assign raw_ed_1 = (raw_ed_1_r === 1'bx) ? 1'b0 : raw_ed_1_r;
 assign raw_ed_2 = (raw_ed_2_r === 1'bx) ? 1'b0 : raw_ed_2_r;
@@ -529,7 +529,7 @@ assign ds_to_es_bus = {
     mem_en,
     mem_we,
     dest,
-    gr_we,
+    ds_rf_we,
     res_from_cnt,
     res_from_mem,
     res_from_csr,
@@ -537,7 +537,7 @@ assign ds_to_es_bus = {
     mul_div_sign,
     ds_excp,
     ds_excp_num,
-    csr_we,
+    ds_csr_we,
     csr_num,
     csr_wmask,
     csr_wdata
