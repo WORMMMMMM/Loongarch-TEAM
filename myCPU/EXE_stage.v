@@ -199,12 +199,12 @@ assign data_sram_wstrb_sp = {4{es_op_st_b & es_addr00}} & 4'b0001
 assign data_sram_req   = es_valid && ms_allowin && es_mem_en && !es_ex && !ms_ex && !ws_ex;
 assign data_sram_wstrb = es_mem_we ? data_sram_wstrb_sp : 4'h0;
 assign data_sram_addr  = es_final_result;
-assign data_sram_wdata = {32{es_op_st_b}} & {4{es_rkd_value[ 7:0]}} |
-                         {32{es_op_st_h}} & {2{es_rkd_value[15:0]}} |
-                         {32{es_op_st_w}} & es_rkd_value[31:0];
-assign data_sram_size  = {2{es_op_st_b | es_op_ld_b | es_op_ld_bu}} & 2'b00 |
-                         {2{es_op_st_h | es_op_ld_h | es_op_ld_hu}} & 2'b01 |
-                         {2{es_op_st_w | es_op_ld_w}}                & 2'b10;
+assign data_sram_wdata = {32{es_op_st_b}} & {4{es_rkd_value[ 7:0]}}
+                       | {32{es_op_st_h}} & {2{es_rkd_value[15:0]}}
+                       | {32{es_op_st_w}} & es_rkd_value[31:0];
+assign data_sram_size  = {2{es_op_st_b | es_op_ld_b | es_op_ld_bu}} & 2'b00
+                       | {2{es_op_st_h | es_op_ld_h | es_op_ld_hu}} & 2'b01
+                       | {2{es_op_st_w | es_op_ld_w}}               & 2'b10;
 assign data_sram_wr    = |data_sram_wstrb;
 
 always @(posedge clk) begin

@@ -170,15 +170,4 @@ assign fs_to_ds_bus = {
     fs_excp_num
 };
 
-
-reg  mid_handshake;
-always @(posedge clk) begin
-    if (reset)
-        mid_handshake <= 1'b0;
-    else if (inst_sram_data_ok)
-        mid_handshake <= 1'b0;
-    else if (inst_sram_req && inst_sram_addr_ok)
-        mid_handshake <= 1'b1;
-end
-
 endmodule

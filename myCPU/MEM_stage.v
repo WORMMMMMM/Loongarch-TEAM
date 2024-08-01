@@ -86,7 +86,7 @@ wire [31:0] csr_wdata;
 
 
 assign ms_flush       = excp_flush || ertn_flush;
-assign ms_stall       = ms_res_from_mem && !data_sram_rdata_buf_valid && !ms_ex;
+assign ms_stall       = ms_res_from_mem && !data_sram_rdata_buf_valid && !ms_excp;
 assign ms_ready_go    = !ms_flush && !ms_stall;
 assign ms_allowin     = !ms_valid || ms_ready_go && ws_allowin || ms_flush;
 assign ms_to_ws_valid = ms_valid && ms_ready_go;

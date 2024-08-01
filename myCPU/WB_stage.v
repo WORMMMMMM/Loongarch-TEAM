@@ -36,7 +36,7 @@ module wb_stage(
 /* handshaking */
 wire ws_ready_go;
 reg  ws_valid;
-reg [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus_r;
+reg  [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus_r;
 
 wire [31:0] ws_pc;
 wire ws_ertn;
@@ -65,7 +65,7 @@ wire [5:0] csr_ecode;
 wire [2:0] csr_esubcode;
 
 /* write back */
-wire        rf_we;
+wire rf_we;
 wire [4 :0] rf_waddr;
 wire [31:0] rf_wdata;
 

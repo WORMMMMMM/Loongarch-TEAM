@@ -138,23 +138,23 @@ id_stage id_stage(
 );
 
 exe_stage exe_stage(
-    .clk             (clk            ),
-    .reset           (reset          ),
+    .clk               (clk            ),
+    .reset             (reset          ),
 
     // allowin
-    .ms_allowin      (ms_allowin     ),
-    .es_allowin      (es_allowin     ),
+    .ms_allowin        (ms_allowin     ),
+    .es_allowin        (es_allowin     ),
 
     // from ds
-    .ds_to_es_valid  (ds_to_es_valid ),
-    .ds_to_es_bus    (ds_to_es_bus   ),
+    .ds_to_es_valid    (ds_to_es_valid ),
+    .ds_to_es_bus      (ds_to_es_bus   ),
 
     // to ms
-    .es_to_ms_valid  (es_to_ms_valid ),
-    .es_to_ms_bus    (es_to_ms_bus   ),
+    .es_to_ms_valid    (es_to_ms_valid ),
+    .es_to_ms_bus      (es_to_ms_bus   ),
 
     // forward
-    .es_forward      (es_forward     ),
+    .es_forward        (es_forward     ),
 
     // mul div
     .es_div_enable     (es_div_enable  ),
@@ -172,43 +172,43 @@ exe_stage exe_stage(
     .data_sram_addr_ok (data_sram_addr_ok),
     .data_sram_wr      (data_sram_wr     ),
 
-    .excp_flush      (excp_flush     ),
-    .ertn_flush      (ertn_flush     ),
-    .ms_ex           (ms_ex          ),
-    .ws_ex           (ws_ex          )
+    .excp_flush        (excp_flush       ),
+    .ertn_flush        (ertn_flush       ),
+    .ms_ex             (ms_ex            ),
+    .ws_ex             (ws_ex            )
 );
 
 mem_stage mem_stage(
-    .clk             (clk            ),
-    .reset           (reset          ),
+    .clk               (clk              ),
+    .reset             (reset            ),
 
     // allowin
-    .ws_allowin      (ws_allowin     ),
-    .ms_allowin      (ms_allowin     ),
+    .ws_allowin        (ws_allowin       ),
+    .ms_allowin        (ms_allowin       ),
 
     // from es
-    .es_to_ms_valid  (es_to_ms_valid ),
-    .es_to_ms_bus    (es_to_ms_bus   ),
+    .es_to_ms_valid    (es_to_ms_valid   ),
+    .es_to_ms_bus      (es_to_ms_bus     ),
 
     // to ws
-    .ms_to_ws_valid  (ms_to_ws_valid ),
-    .ms_to_ws_bus    (ms_to_ws_bus   ),
+    .ms_to_ws_valid    (ms_to_ws_valid   ),
+    .ms_to_ws_bus      (ms_to_ws_bus     ),
 
     // forward
-    .ms_forward      (ms_forward     ),
+    .ms_forward        (ms_forward       ),
 
     // div_mul
-    .div_result      (div_result     ),
-    .mod_result      (mod_result     ),
-    .mul_result      (mul_result     ),
+    .div_result        (div_result       ),
+    .mod_result        (mod_result       ),
+    .mul_result        (mul_result       ),
 
     // from data-sram
-    .data_sram_rdata (data_sram_rdata),
-    .data_sram_data_ok(data_sram_data_ok),
+    .data_sram_rdata   (data_sram_rdata  ),
+    .data_sram_data_ok (data_sram_data_ok),
 
-    .excp_flush      (excp_flush     ),
-    .ertn_flush      (ertn_flush     ),
-    .ms_ex           (ms_ex          )
+    .excp_flush        (excp_flush       ),
+    .ertn_flush        (ertn_flush       ),
+    .ms_ex             (ms_ex            )
 );
 
 wb_stage wb_stage(
