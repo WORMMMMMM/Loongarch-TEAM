@@ -220,7 +220,7 @@ assign timer_result = es_inst_rdcntvl_w ? timer[31: 0] :
                       es_inst_rdcntvh_w ? timer[63:32] :
                       32'h0;
 
-assign es_final_result = res_from_cnt ? timer_result : es_alu_result;
+assign es_final_result = es_res_from_cnt ? timer_result : es_alu_result;
 
 assign excp_ale = (es_inst_ld_h | es_inst_st_h | es_inst_ld_hu) & data_sram_addr[0] != 1'b0
                 | (es_inst_ld_w | es_inst_st_w) & data_sram_addr[1:0] != 2'b00;
