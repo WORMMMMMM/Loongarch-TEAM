@@ -116,11 +116,9 @@ always @(posedge clk) begin
 if (reset) begin
         br_taken_buf   <= 1'b0;
     end
-    else if (!ps_ready_go && (!ds_allowin || !fs_ready_go)) begin
-         if (br_taken) begin
+    else if (/*!ps_ready_go &&*/br_taken && (!ds_allowin || !fs_ready_go)) begin
             br_taken_buf   <= 1'b1;
             br_target_buf  <= br_target;
-        end
     end
     else if (ps_ready_go) begin
         br_taken_buf   <= 1'b0;

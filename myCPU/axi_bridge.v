@@ -155,7 +155,7 @@ always @(posedge aclk) begin
         two_handshake <= 2'b00;
     else if (finish_two_handshake)
         two_handshake <= 2'b00;
-    else if (awready || wready)
+    else if (awvalid && awready || wvalid && wready)
         two_handshake <= two_handshake + 1;
 end
 
