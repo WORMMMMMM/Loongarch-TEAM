@@ -14,6 +14,7 @@ module mycpu_top(
     output     [ 2:0] arprot,//0
     output            arvalid,//read address valid
     input             arready,//read address valid
+    input      [ 7:0] ext_int,
 
     // read respond channel
     input      [ 3:0] rid,
@@ -53,7 +54,8 @@ module mycpu_top(
     output [31:0] debug_wb_pc,
     output [ 3:0] debug_wb_rf_we,
     output [ 4:0] debug_wb_rf_wnum,
-    output [31:0] debug_wb_rf_wdata
+    output [31:0] debug_wb_rf_wdata,
+    output [31:0] debug_wb_inst
 );
 
 wire         clk;
@@ -83,10 +85,10 @@ wire         data_sram_wr;
 
 wire         inst_sram_en;
 wire         data_sram_en;
-assign       inst_sram_addr_ok = inst_sram_en;
-assign       inst_sram_data_ok = inst_sram_en;
-assign       data_sram_addr_ok = data_sram_en;
-assign       data_sram_data_ok = data_sram_en;
+//assign       inst_sram_addr_ok = inst_sram_en;
+//assign       inst_sram_data_ok = inst_sram_en;
+//assign       data_sram_addr_ok = data_sram_en;
+//assign       data_sram_data_ok = data_sram_en;
 
 
 axi_bridge axi_bridge(
@@ -192,7 +194,8 @@ cpu_core cpu_core(
     .debug_wb_pc       (debug_wb_pc      ),
     .debug_wb_rf_we    (debug_wb_rf_we   ),
     .debug_wb_rf_wnum  (debug_wb_rf_wnum ),
-    .debug_wb_rf_wdata (debug_wb_rf_wdata)
+    .debug_wb_rf_wdata (debug_wb_rf_wdata),
+    .debug_wb_inst     (debug_wb_inst    )
 );
 
 endmodule

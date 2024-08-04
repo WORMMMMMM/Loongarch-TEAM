@@ -30,7 +30,8 @@ module wb_stage(
     output [31:0] debug_wb_pc,
     output [ 3:0] debug_wb_rf_we,
     output [ 4:0] debug_wb_rf_wnum,
-    output [31:0] debug_wb_rf_wdata
+    output [31:0] debug_wb_rf_wdata,
+    output [31:0] debug_wb_inst
 );
 
 /* handshaking */
@@ -39,6 +40,7 @@ reg  ws_valid;
 reg  [`MS_TO_WS_BUS_WD -1:0] ms_to_ws_bus_r;
 
 wire [31:0] ws_pc;
+wire [31:0] ws_inst;
 wire ws_ertn;
 wire [ 4:0] ws_dest;
 wire ws_rf_we;
@@ -98,7 +100,8 @@ assign {
     ws_csr_we,
     csr_num,
     csr_wmask,
-    csr_wdata
+    csr_wdata,
+    ws_inst
 } = ms_to_ws_bus_r;
 
 assign ws_excp     = ms_excp;
@@ -178,5 +181,5 @@ assign debug_wb_pc       = ws_pc;
 assign debug_wb_rf_we    = {4{rf_we}};
 assign debug_wb_rf_wnum  = rf_waddr;
 assign debug_wb_rf_wdata = rf_wdata;
-
+assign debug_wb_inst     = ws_inst;
 endmodule

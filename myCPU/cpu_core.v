@@ -31,7 +31,8 @@ module cpu_core(
     output [31:0] debug_wb_pc,
     output [ 3:0] debug_wb_rf_we,
     output [ 4:0] debug_wb_rf_wnum,
-    output [31:0] debug_wb_rf_wdata
+    output [31:0] debug_wb_rf_wdata,
+    output [31:0] debug_wb_inst 
 );
 
 reg reset;
@@ -66,6 +67,8 @@ wire div_complete;
 wire [31:0] div_result;
 wire [31:0] mod_result;
 wire [63:0] mul_result;
+wire [63:0] mul_result_sign;
+wire [63:0] mul_result_unsign;
 
 wire ms_ex;
 wire ws_ex;
@@ -93,8 +96,8 @@ if_stage if_stage(
 
     .br_bus            (br_bus           ),
 
-    .excp_flush        (excp_flush       ),
-    .ertn_flush        (ertn_flush       ),
+    .excp_taken        (excp_flush       ),
+    .ertn_taken        (ertn_flush       ),
     .era               (era              ),
     .eentry            (eentry           ),
 
@@ -241,7 +244,8 @@ wb_stage wb_stage(
     .debug_wb_pc       (debug_wb_pc      ),
     .debug_wb_rf_we    (debug_wb_rf_we   ),
     .debug_wb_rf_wnum  (debug_wb_rf_wnum ),
-    .debug_wb_rf_wdata (debug_wb_rf_wdata)
+    .debug_wb_rf_wdata (debug_wb_rf_wdata),
+    .debug_wb_inst     (debug_wb_inst    )
 );
 
 div divider(
@@ -256,13 +260,29 @@ div divider(
     .r          (mod_result     )
 );
 
-mul multiplier(
-    .mul_clk    (clk            ),
-    .reset      (reset          ),
-    .mul_signed (es_mul_div_sign),
-    .x          (es_rj_value    ),
-    .y          (es_rkd_value   ),
-    .result     (mul_result     )
+//mul multiplier(
+//    .mul_clk    (clk            ),
+//    .reset      (reset          ),
+//    .mul_signed (es_mul_div_sign),
+//    .x          (es_rj_value    ),
+//    .y          (es_rkd_value   ),
+//    .result     (mul_result     )
+//);
+
+mult_gen_0 mul_sign(
+    .CLK        (clk            ),
+    .A          (es_rj_value    ),
+    .B          (es_rkd_value   ),
+    .P          (mul_result_sign     ),
+    .SCLR       (reset          )
 );
+mult_gen_1 mul_unsign(
+    .CLK        (clk            ),
+    .A          (es_rj_value    ),
+    .B          (es_rkd_value   ),
+    .P          (mul_result_unsign     ),
+    .SCLR       (reset          )
+);
+assign mul_result = es_mul_div_sign ? mul_result_sign : mul_result_unsign;
 
 endmodule
