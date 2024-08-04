@@ -14,6 +14,8 @@ module mycpu_top(// AXI structure and cache according to CALab
     output     [ 2:0] arprot,//0
     output            arvalid,//read address valid
     input             arready,//read address valid
+    input      [ 7:0] ext_int,
+
     // read respond channel
     input      [ 3:0] rid,
     input      [31:0] rdata,
@@ -49,29 +51,95 @@ module mycpu_top(// AXI structure and cache according to CALab
     output [31:0] debug_wb_pc,
     output [ 3:0] debug_wb_rf_we,
     output [ 4:0] debug_wb_rf_wnum,
-    output [31:0] debug_wb_rf_wdata
+    output [31:0] debug_wb_rf_wdata,
+    output [31:0] debug_wb_inst
 );
 
-     // inst sram interface
-    wire        inst_sram_req;
-    wire        inst_sram_wr;
-    wire [ 1:0] inst_sram_size;
-    wire [ 3:0] inst_sram_wstrb;
-    wire [31:0] inst_sram_addr;
-    wire [31:0] inst_sram_wdata;
-    wire        inst_sram_addr_ok;
-    wire        inst_sram_data_ok;
-    wire [31:0] inst_sram_rdata;
-    // data sram interface
-    wire        data_sram_req;
-    wire        data_sram_wr;
-    wire [ 1:0] data_sram_size;
-    wire [ 3:0] data_sram_wstrb;
-    wire [31:0] data_sram_addr;
-    wire [31:0] data_sram_wdata;
-    wire        data_sram_addr_ok;
-    wire        data_sram_data_ok;
-    wire [31:0] data_sram_rdata;
+
+wire         clk;
+wire         resetn;
+assign       clk = aclk;
+assign       resetn = aresetn;
+
+wire         inst_sram_req;
+wire  [ 3:0] inst_sram_wstrb;
+wire  [31:0] inst_sram_addr;
+wire  [31:0] inst_sram_wdata;
+wire  [31:0] inst_sram_rdata;
+wire  [ 1:0] inst_sram_size;
+wire         inst_sram_addr_ok;
+wire         inst_sram_data_ok;
+wire         inst_sram_wr;
+
+wire         data_sram_req;
+wire  [ 3:0] data_sram_wstrb;
+wire  [31:0] data_sram_addr;
+wire  [31:0] data_sram_wdata;
+wire  [31:0] data_sram_rdata;
+wire  [ 1:0] data_sram_size;
+wire         data_sram_addr_ok;
+wire         data_sram_data_ok;
+wire         data_sram_wr;
+
+wire         inst_sram_en;
+wire         data_sram_en;
+//assign       inst_sram_addr_ok = inst_sram_en;
+//assign       inst_sram_data_ok = inst_sram_en;
+//assign       data_sram_addr_ok = data_sram_en;
+//assign       data_sram_data_ok = data_sram_en;
+
+
+axi_bridge axi_bridge(
+
+    .aclk      (aclk    ),
+    .aresetn   (aresetn ),
+    // read request
+    .arid      (arid    ),
+    .araddr    (araddr  ),
+    .arlen     (arlen   ),
+    .arsize    (arsize  ),
+    .arburst   (arburst ),
+    .arlock    (arlock  ),
+    .arcache   (arcache ),
+    .arprot    (arprot  ),
+    .arvalid   (arvalid ),
+    .arready   (arready ),
+    
+    // read respond
+    .rid       (rid     ),
+    .rdata     (rdata   ),
+    .rresp     (rresp   ),
+    .rvalid    (rvalid  ),
+    .rready    (rready  ),
+
+    // write request
+    .awid      (awid    ),
+    .awaddr    (awaddr  ),
+    .awlen     (awlen   ),
+    .awsize    (awsize  ),
+    .awburst   (awburst ),
+    .awlock    (awlock  ),
+    .awcache   (awcache ),
+    .awprot    (awprot  ),
+    .awvalid   (awvalid ),
+    .awready   (awready ),
+
+    // write data
+    .wid       (wid     ),
+    .wdata     (wdata   ),
+    .wstrb     (wstrb   ),
+    .wlast     (wlast   ),
+    .wvalid    (wvalid  ),
+    .wready    (wready  ),
+
+    // write respond
+    .bid       (bid     ),
+    .bresp     (bresp   ),
+    .bvalid    (bvalid  ),
+    .bready    (bready  ),
+
+   
+
 
     //icache read channel , we don't have a write channel for icache
     wire        icache_addr_ok;
@@ -111,7 +179,7 @@ module mycpu_top(// AXI structure and cache according to CALab
     wire [ 3:0] dcache_wr_strb;
     wire[127:0] dcache_wr_data;
     wire        dcache_wr_rdy;
-    //exp21: 继承指令cache
+    //exp21: ç»§æ‰¿æŒ‡ä»¤cache
 
 axi_bridge my_bridge_sram_axi(
     .aclk               (aclk               ),
@@ -208,10 +276,13 @@ cpu_core cpu_core(
     .data_sram_data_ok  (dcache_data_ok ),
     .data_sram_wr       (data_sram_wr      ),
     // trace debug interface
-    .debug_wb_pc        (debug_wb_pc      ),
-    .debug_wb_rf_we     (debug_wb_rf_we   ),
-    .debug_wb_rf_wnum   (debug_wb_rf_wnum ),
-    .debug_wb_rf_wdata  (debug_wb_rf_wdata)
+
+    .debug_wb_pc       (debug_wb_pc      ),
+    .debug_wb_rf_we    (debug_wb_rf_we   ),
+    .debug_wb_rf_wnum  (debug_wb_rf_wnum ),
+    .debug_wb_rf_wdata (debug_wb_rf_wdata),
+    .debug_wb_inst     (debug_wb_inst    )
+
 );
 
     cache Icache(
@@ -221,11 +292,11 @@ cpu_core cpu_core(
         .valid  (inst_sram_req              ),//pre-if request valid
         .op     (inst_sram_wr               ),//always 0==read
         .index  (inst_sram_addr[11:4]       ),
-        .tag    (inst_sram_addr[31:12]      ),//from tlb:inst_sram_addr[31:12]=实地�?
+        .tag    (inst_sram_addr[31:12]      ),//from tlb:inst_sram_addr[31:12]=å®žåœ°å?
         .offset (inst_sram_addr[3:0]        ),
         .wstrb  (inst_sram_wstrb            ),
         .wdata  (inst_sram_wdata            ),
-        .addr_ok(icache_addr_ok             ),//output 流水线方�? 阻塞流水线的指令
+        .addr_ok(icache_addr_ok             ),//output æµæ°´çº¿æ–¹å? é˜»å¡žæµæ°´çº¿çš„æŒ‡ä»¤
         .data_ok(icache_data_ok             ),
         .rdata  (icache_rdata               ),//output
         //--------AXI read interface-------
@@ -233,18 +304,18 @@ cpu_core cpu_core(
         .rd_type(icache_rd_type             ),
         .rd_addr(icache_rd_addr             ),
 
-        .rd_rdy   (icache_rd_rdy            ),//input 总线发来�?
+        .rd_rdy   (icache_rd_rdy            ),//input æ€»çº¿å‘æ¥çš?
         .ret_valid(icache_ret_valid         ),
         .ret_last (icache_ret_last          ),
         .ret_data (icache_ret_data          ),
 
         //--------AXI write interface------
-        .wr_req (icache_wr_req              ),//output,对于icache永远�?0
+        .wr_req (icache_wr_req              ),//output,å¯¹äºŽicacheæ°¸è¿œæ˜?0
         .wr_type(icache_wr_type             ),
         .wr_addr(icache_wr_addr             ),
         .wr_wstrb(icache_wr_strb             ),
         .wr_data(icache_wr_data             ),
-        .wr_rdy (icache_wr_rdy              )//icache不会真正要写sram，置1没有关系
+        .wr_rdy (icache_wr_rdy              )//icacheä¸ä¼šçœŸæ­£è¦å†™sramï¼Œç½®1æ²¡æœ‰å…³ç³»
     );
     
  cache Dcache(
@@ -254,11 +325,11 @@ cpu_core cpu_core(
         .valid  (data_sram_req              ),//pre-if request valid
         .op     (data_sram_wr               ),//always 0==read
         .index  (data_sram_addr[11:4]       ),
-        .tag    (data_sram_addr[31:12]      ),//from tlb:inst_sram_addr[31:12]=实地�?
+        .tag    (data_sram_addr[31:12]      ),//from tlb:inst_sram_addr[31:12]=å®žåœ°å?
         .offset (data_sram_addr[3:0]        ),
         .wstrb  (data_sram_wstrb            ),
         .wdata  (data_sram_wdata            ),
-        .addr_ok(dcache_addr_ok             ),//output 流水线方�? 阻塞流水线的指令
+        .addr_ok(dcache_addr_ok             ),//output æµæ°´çº¿æ–¹å? é˜»å¡žæµæ°´çº¿çš„æŒ‡ä»¤
         .data_ok(dcache_data_ok             ),
         .rdata  (dcache_rdata               ),//output
         //--------AXI read interface-------
@@ -266,7 +337,7 @@ cpu_core cpu_core(
         .rd_type(dcache_rd_type             ),
         .rd_addr(dcache_rd_addr             ),
 
-        .rd_rdy   (dcache_rd_rdy            ),//input 总线发来�?
+        .rd_rdy   (dcache_rd_rdy            ),//input æ€»çº¿å‘æ¥çš?
         .ret_valid(dcache_ret_valid         ),
         .ret_last (dcache_ret_last          ),
         .ret_data (dcache_ret_data          ),

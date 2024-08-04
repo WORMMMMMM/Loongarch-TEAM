@@ -41,6 +41,7 @@ reg  ms_valid;
 reg  [`ES_TO_MS_BUS_WD-1:0] es_to_ms_bus_r;
 
 wire [31:0] ms_pc;
+wire [31:0] ms_inst;
 wire ms_inst_ld_b;
 wire ms_inst_ld_h;
 wire ms_inst_ld_w;
@@ -134,7 +135,8 @@ assign {
     ms_csr_we,
     csr_num,
     csr_wmask,
-    csr_wdata
+    csr_wdata,
+    ms_inst
 } = es_to_ms_bus_r;            
 
 always @(posedge clk) begin
@@ -208,7 +210,8 @@ assign ms_to_ws_bus = {
     ms_csr_we,
     csr_num,
     csr_wmask,
-    csr_wdata
+    csr_wdata,
+    ms_inst
 };
 
 endmodule

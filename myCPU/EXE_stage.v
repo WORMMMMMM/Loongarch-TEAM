@@ -49,6 +49,7 @@ reg  es_valid;
 reg  [`DS_TO_ES_BUS_WD-1:0] ds_to_es_bus_r;
 
 wire [31:0] es_pc;
+wire [31:0] es_inst;
 wire es_inst_ld_b;
 wire es_inst_ld_h;
 wire es_inst_ld_w;
@@ -167,7 +168,8 @@ assign {
     es_csr_we,
     csr_num,
     csr_wmask,
-    csr_wdata
+    csr_wdata,
+    es_inst
 } = ds_to_es_bus_r;
 
 assign es_alu_src1 = es_src1_is_pc  ? es_pc[31:0] :
@@ -265,7 +267,8 @@ assign es_to_ms_bus = {
     es_csr_we,
     csr_num,
     csr_wmask,
-    csr_wdata
+    csr_wdata,
+    es_inst
 };
 
 endmodule

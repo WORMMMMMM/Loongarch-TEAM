@@ -417,7 +417,7 @@ assign overflow = (rj_value[31] ^ rkd_value[31]) & (rj_value[31] ^ result[31]);
 assign rj_eq_rd  = (rj_value == rkd_value);
 assign rj_lt_rd  = result[31] ^ overflow;
 assign rj_ltu_rd = sign;
-assign br_taken  = ds_valid && (inst_jirl | inst_b | inst_bl
+assign br_taken  = !ds_stall && ds_valid && (inst_jirl | inst_b | inst_bl
                               | inst_beq  &  rj_eq_rd
                               | inst_bne  & ~rj_eq_rd
                               | inst_blt  &  rj_lt_rd
@@ -540,7 +540,8 @@ assign ds_to_es_bus = {
     ds_csr_we,
     csr_num,
     csr_wmask,
-    csr_wdata
+    csr_wdata,
+    inst
 };
 
 endmodule
