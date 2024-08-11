@@ -1,6 +1,8 @@
-module mycpu_top(
+module core_top(
     input         aclk,
     input         aresetn,
+
+    input      [ 7:0] intrpt,
     
     // AXI bridge interface
     // read request channel
@@ -14,7 +16,6 @@ module mycpu_top(
     output     [ 2:0] arprot,//0
     output            arvalid,//read address valid
     input             arready,//read address valid
-    input      [ 7:0] ext_int,
 
     // read respond channel
     input      [ 3:0] rid,
@@ -50,12 +51,19 @@ module mycpu_top(
     input             bvalid,//write response valid
     output            bready,//write response ready
 
+    // debug
+    input           break_point,
+    input           infor_flag,
+    input  [ 4:0]   reg_num,
+    output          ws_valid,
+    output [31:0]   rf_rdata,
+
     // trace debug interface
-    output [31:0] debug_wb_pc,
-    output [ 3:0] debug_wb_rf_we,
-    output [ 4:0] debug_wb_rf_wnum,
-    output [31:0] debug_wb_rf_wdata,
-    output [31:0] debug_wb_inst
+    output [31:0] debug0_wb_pc,
+    output [ 3:0] debug0_wb_rf_wen,
+    output [ 4:0] debug0_wb_rf_wnum,
+    output [31:0] debug0_wb_rf_wdata,
+    output [31:0] debug0_wb_inst
 );
 
 wire         clk;
@@ -168,6 +176,8 @@ cpu_core cpu_core(
     .clk               (clk              ),
     .resetn            (resetn           ),
 
+    .hard_int_in       (intrpt           ),
+
     // inst sram interface
     .inst_sram_req     (inst_sram_req    ),
     .inst_sram_wstrb   (inst_sram_wstrb  ),
@@ -191,11 +201,11 @@ cpu_core cpu_core(
     .data_sram_wr      (data_sram_wr     ),
 
     // trace debug interface
-    .debug_wb_pc       (debug_wb_pc      ),
-    .debug_wb_rf_we    (debug_wb_rf_we   ),
-    .debug_wb_rf_wnum  (debug_wb_rf_wnum ),
-    .debug_wb_rf_wdata (debug_wb_rf_wdata),
-    .debug_wb_inst     (debug_wb_inst    )
+    .debug_wb_pc       (debug0_wb_pc      ),
+    .debug_wb_rf_we    (debug0_wb_rf_wen  ),
+    .debug_wb_rf_wnum  (debug0_wb_rf_wnum ),
+    .debug_wb_rf_wdata (debug0_wb_rf_wdata),
+    .debug_wb_inst     (debug0_wb_inst    )
 );
 
 endmodule
