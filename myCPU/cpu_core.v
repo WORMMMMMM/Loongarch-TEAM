@@ -82,6 +82,26 @@ wire [ 7:0] hard_int_in = 8'b0;
 wire        ipi_int_in  = 1'b0;
 wire has_int;
 
+wire [31:0]  fetch_pc;
+wire         fetch_en;
+wire [31:0]  btb_ret_pc;
+wire         btb_taken;
+wire         btb_en;
+wire [ 4:0]  btb_index;
+wire         btb_add_entry;    
+wire         btb_pop_ras;
+wire         btb_push_ras;
+wire         btb_operate_en;
+wire         btb_delete_entry; 
+wire         btb_pre_error;  
+wire         btb_pre_right;  
+wire         btb_target_error; 
+wire         btb_right_orien;  
+wire [31:0]  btb_right_target;
+wire [31:0]  btb_operate_pc;   
+wire [ 4:0]  btb_operate_index;
+
+
 
 if_stage if_stage(
     .clk               (clk              ),
@@ -110,7 +130,14 @@ if_stage if_stage(
     .inst_sram_size    (inst_sram_size   ),
     .inst_sram_addr_ok (inst_sram_addr_ok),
     .inst_sram_data_ok (inst_sram_data_ok),
-    .inst_sram_wr      (inst_sram_wr     )
+    .inst_sram_wr      (inst_sram_wr     ),
+    //to btb
+    .fetch_pc          (fetch_pc         ),
+    .fetch_en          (fetch_en         ),
+    .btb_ret_pc        (btb_ret_pc       ),  
+    .btb_taken         (btb_taken        ),
+    .btb_en            (btb_en           ),
+    .btb_index         (btb_index        )
 );
 
 id_stage id_stage(
@@ -137,7 +164,21 @@ id_stage id_stage(
 
     .excp_flush     (excp_flush    ),
     .ertn_flush     (ertn_flush    ),
-    .has_int        (has_int       )
+    .has_int        (has_int       ),
+
+    //to btb
+    .btb_operate_en       (btb_operate_en      ),
+    .btb_pop_ras          (btb_pop_ras         ),
+    .btb_push_ras         (btb_push_ras        ),
+    .btb_add_entry        (btb_add_entry       ),
+    .btb_delete_entry     (btb_delete_entry    ),    
+    .btb_pre_error        (btb_pre_error       ),
+    .btb_pre_right        (btb_pre_right       ),
+    .btb_target_error     (btb_target_error    ),    
+    .btb_right_orien      (btb_right_orien     ),
+    .btb_right_target     (btb_right_target    ),
+    .btb_operate_pc       (btb_operate_pc      ),
+    .btb_operate_index    (btb_operate_index   ),
 );
 
 exe_stage exe_stage(
@@ -258,6 +299,31 @@ div divider(
     .y          (es_rkd_value   ),
     .s          (div_result     ),
     .r          (mod_result     )
+);
+
+btb btb( 
+    .clk            (aclk             ),
+    .reset          (reset            ),
+    //from/to if
+    .fetch_pc       (fetch_pc         ),
+    .fetch_en       (fetch_en         ),
+    .ret_pc         (btb_ret_pc       ), 
+    .taken          (btb_taken        ),
+    .ret_en         (btb_en           ),
+    .ret_index      (btb_index        ),
+    //from id
+    .operate_en     (btb_operate_en   ),
+    .operate_pc     (btb_operate_pc   ),    
+    .operate_index  (btb_operate_index),
+    .pop_ras        (btb_pop_ras      ),
+    .push_ras       (btb_push_ras     ),
+    .add_entry      (btb_add_entry    ),    
+    .delete_entry   (btb_delete_entry ),
+    .pre_error      (btb_pre_error    ),
+    .pre_right      (btb_pre_right    ),
+    .target_error   (btb_target_error ),
+    .right_orien    (btb_right_orien  ),
+    .right_target   (btb_right_target )
 );
 
 //mul multiplier(
