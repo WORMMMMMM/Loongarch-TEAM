@@ -18,6 +18,14 @@ module if_stage(
     input  [31:0] era,
     input  [31:0] eentry,
 
+    // to btb
+    output [31:0]                  fetch_pc          ,
+    output                         fetch_en          ,
+    input  [31:0]                  btb_ret_pc        ,
+    input                          btb_taken         ,
+    input                          btb_en            ,
+    input  [ 4:0]                  btb_index         ,
+
     // inst sram interface
     output inst_sram_req,
     output [ 3:0] inst_sram_wstrb,
@@ -64,6 +72,9 @@ reg  [31:0] fs_inst_buf;
 reg  fs_inst_buf_valid;
 wire [31:0] fs_inst;
 
+wire         btb_pre_error_flush;
+wire [31:0]  btb_pre_error_flush_target;
+
 wire excp_adef;
 wire ps_excp;
 reg  fs_excp_r;
@@ -78,13 +89,90 @@ wire excp_noin_r;
 assign excp_noin_r = !(!ps_ready_go && (!ds_allowin || !fs_ready_go)) ? 1'b1 : 1'b0;
 assign excp_noin = excp_noin_r ===1'bx ? 1'b0 : excp_noin_r;
 
-// pre-IF stage
-assign {
-    br_taken_r,
-    br_target
-} = br_bus;
-assign br_taken = br_taken_r === 1'bx ? 1'b0 :  br_taken_r;
+wire  [31:0] btb_ret_pc_t;
+wire  [ 4:0] btb_index_t;
+wire         btb_taken_t;
+wire         btb_en_t;
 
+/*
+* br state machine
+* when btb pre error, id stage will cancel one inst. so need confirm useless
+* inst (will be canceled) is generated. 
+*/ 
+reg [31:0] br_target_inst_req_buffer;
+reg [ 2:0] br_target_inst_req_state;
+localparam br_target_inst_req_empty = 3'b001;
+localparam br_target_inst_req_wait_slot = 3'b010;
+localparam br_target_inst_req_wait_br_target = 3'b100;
+
+always @(posedge clk) begin
+    if (reset) begin
+        br_target_inst_req_state <= br_target_inst_req_empty;
+    end
+    else case (br_target_inst_req_state) 
+        br_target_inst_req_empty: begin
+            if (fs_flush) begin
+                br_target_inst_req_state <= br_target_inst_req_empty; 
+            end
+            else if(btb_pre_error_flush && !fs_valid) begin
+                br_target_inst_req_state  <= br_target_inst_req_wait_slot;
+                br_target_inst_req_buffer <= btb_pre_error_flush_target;
+            end
+            else if(btb_pre_error_flush && fs_valid || btb_pre_error_flush && !fs_valid) begin
+                br_target_inst_req_state  <= br_target_inst_req_wait_br_target;
+                br_target_inst_req_buffer <= btb_pre_error_flush_target;
+            end
+        end
+        br_target_inst_req_wait_slot: begin
+            if(fs_flush) begin
+                br_target_inst_req_state <= br_target_inst_req_empty;
+            end
+            else if(ps_ready_go) begin
+                br_target_inst_req_state <= br_target_inst_req_wait_br_target;
+            end
+        end
+        br_target_inst_req_wait_br_target: begin
+            if(ps_ready_go || fs_flush) begin
+                br_target_inst_req_state <= br_target_inst_req_empty;
+            end
+        end
+        default: begin
+            br_target_inst_req_state <= br_target_inst_req_empty;
+        end
+    endcase
+end
+
+/*
+* btb lock
+* btb ret only maintain one clock
+* when pfs not ready go, should buffer btb ret
+*/
+reg [37:0] btb_lock_buffer;
+reg        btb_lock_en;
+always @(posedge clk) begin
+	if (reset || fs_flush || fetch_en)
+		btb_lock_en <= 1'b0;
+	else if (btb_en && !ps_ready_go) begin
+		btb_lock_en     <= 1'b1;
+		btb_lock_buffer <= {btb_taken, btb_index, btb_ret_pc};
+	end
+end
+
+assign btb_ret_pc_t = {32{btb_lock_en}} & btb_lock_buffer[31:0] | btb_ret_pc;
+assign btb_index_t  = {5{btb_lock_en}} & btb_lock_buffer[36:32] | btb_index;
+assign btb_taken_t  = btb_lock_en && btb_lock_buffer[37] || btb_taken;
+assign btb_en_t     = btb_lock_en || btb_en;
+
+// pre-IF stage
+// assign {
+//     br_taken_r,
+//     br_target
+// } = br_bus;
+
+assign {btb_pre_error_flush, btb_pre_error_flush_target} = br_bus;
+
+assign br_taken = br_taken_r === 1'bx ? 1'b0 :  br_taken_r;
+assign fetch_btb_target = (btb_taken && btb_en) || (btb_lock_en && btb_lock_buffer[37]);
 assign ps_ready_go    = inst_sram_req && inst_sram_addr_ok;
 assign ps_to_fs_valid = ps_ready_go;
 
@@ -240,7 +328,11 @@ assign fs_to_ds_bus = {
     fs_pc,
     fs_inst,
     fs_excp,
-    fs_excp_num
+    fs_excp_num,
+    btb_ret_pc_t,
+    btb_index_t,
+    btb_taken_t,
+    btb_en_t
 };
 
 endmodule

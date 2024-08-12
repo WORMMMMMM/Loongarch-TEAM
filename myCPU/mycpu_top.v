@@ -198,4 +198,31 @@ cpu_core cpu_core(
     .debug_wb_inst     (debug_wb_inst    )
 );
 
+btb btb( 
+    .clk            (aclk             ),
+    .reset          (reset            ),
+    //from/to if
+    .fetch_pc       (fetch_pc         ),
+    .fetch_en       (fetch_en         ),
+    .ret_pc         (btb_ret_pc       ), 
+    .taken          (btb_taken        ),
+    .ret_en         (btb_en           ),
+    .ret_index      (btb_index        ),
+    //from id
+    .operate_en     (btb_operate_en   ),
+    .operate_pc     (btb_operate_pc   ),    
+    .operate_index  (btb_operate_index),
+    .pop_ras        (btb_pop_ras      ),
+    .push_ras       (btb_push_ras     ),
+    .add_entry      (btb_add_entry    ),    
+    .delete_entry   (btb_delete_entry ),
+    .pre_error      (btb_pre_error    ),
+    .pre_right      (btb_pre_right    ),
+    .target_error   (btb_target_error ),
+    .right_orien    (btb_right_orien  ),
+    .right_target   (btb_right_target )
+);
+
+
+
 endmodule
