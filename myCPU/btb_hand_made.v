@@ -1,4 +1,4 @@
-﻿module btb
+﻿module btb_hand_made
 #(
     parameter BTBNUM = 32,
     parameter RASNUM = 16
