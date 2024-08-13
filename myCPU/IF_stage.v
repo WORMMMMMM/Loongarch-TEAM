@@ -171,7 +171,7 @@ assign btb_en_t     = btb_lock_en || btb_en;
 
 assign {btb_pre_error_flush, btb_pre_error_flush_target} = br_bus;
 
-assign br_taken = br_taken_r === 1'bx ? 1'b0 :  br_taken_r;
+// assign br_taken = br_taken_r === 1'bx ? 1'b0 :  br_taken_r;
 assign fetch_btb_target = (btb_taken && btb_en) || (btb_lock_en && btb_lock_buffer[37]);
 assign ps_ready_go    = inst_sram_req && inst_sram_addr_ok;
 assign ps_to_fs_valid = ps_ready_go;
@@ -200,18 +200,18 @@ always @(posedge clk) begin
     end
 end
 
-always @(posedge clk) begin
-if (reset) begin
-        br_taken_buf   <= 1'b0;
-    end
-    else if (/*!ps_ready_go &&*/br_taken && (!ds_allowin || !fs_ready_go)) begin
-            br_taken_buf   <= 1'b1;
-            br_target_buf  <= br_target;
-    end
-    else if (ps_ready_go) begin
-        br_taken_buf   <= 1'b0;
-    end
-end
+// always @(posedge clk) begin
+// if (reset) begin
+//         br_taken_buf   <= 1'b0;
+//     end
+//     else if (/*!ps_ready_go &&*/br_taken && (!ds_allowin || !fs_ready_go)) begin
+//             br_taken_buf   <= 1'b1;
+//             br_target_buf  <= br_target;
+//     end
+//     else if (ps_ready_go) begin
+//         br_taken_buf   <= 1'b0;
+//     end
+// end
 assign seq_pc = fs_pc + 32'h4;
 //assign nextpc = fs_excp        ? 32'h1c000000 :
 //                excp_noin      ? nextpc :
@@ -244,11 +244,8 @@ always @(*) begin
     else if(ertn_taken) begin
         nextpc = era;
     end   
-    else if(br_taken_buf) begin
-        nextpc = br_target_buf;
-    end
-    else if(br_taken) begin
-        nextpc = br_target;
+    else if(btb_pre_error_flush && fs_valid) begin
+        nextpc = btb_pre_error_flush_target;
     end
     else begin
            nextpc = seq_pc;
@@ -269,7 +266,7 @@ assign ps_excp_num = {1'b0, excp_adef, 14'b0};
 
 assign excp_flush = (excp_taken_buf || excp_taken) && ds_allowin && data_arrived;
 assign ertn_flush = (ertn_taken_buf || ertn_taken) && ds_allowin && data_arrived;
-assign br_flush   = (  br_taken_buf ||   br_taken) && ds_allowin && data_arrived;
+assign br_flush   = (btb_pre_error_flush) && ds_allowin && data_arrived;
 
 // IF stage
 assign fs_flush       = excp_flush || ertn_flush || br_flush;
