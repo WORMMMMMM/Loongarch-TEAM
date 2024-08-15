@@ -4,6 +4,8 @@
 module cpu_core(
     input         clk,
     input         resetn,
+    
+    input  [ 7:0] hard_int_in,
 
     // inst sram interface
     output        inst_sram_req,
@@ -78,7 +80,7 @@ wire ertn_flush;
 wire [31:0] era;
 wire [31:0] eentry;
 
-wire [ 7:0] hard_int_in = 8'b0;
+// wire [ 7:0] hard_int_in = 8'b0;
 wire        ipi_int_in  = 1'b0;
 wire has_int;
 
