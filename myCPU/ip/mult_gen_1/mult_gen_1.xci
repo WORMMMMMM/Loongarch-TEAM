@@ -4,7 +4,7 @@
     "xci_name": "mult_gen_1",
     "component_reference": "xilinx.com:ip:mult_gen:12.0",
     "ip_revision": "19",
-    "gen_directory": "../../../../loongson.gen/sources_1/ip/mult_gen_1_1",
+    "gen_directory": "../../../../loongson.gen/sources_1/ip/mult_gen_1",
     "parameters": {
       "component_parameters": {
         "InternalUser": [ { "value": "0", "resolve_type": "user", "format": "long", "usage": "all" } ],
@@ -19,7 +19,7 @@
         "Multiplier_Construction": [ { "value": "Use_LUTs", "resolve_type": "user", "usage": "all" } ],
         "OptGoal": [ { "value": "Speed", "resolve_type": "user", "usage": "all" } ],
         "Use_Custom_Output_Width": [ { "value": "false", "resolve_type": "user", "format": "bool", "usage": "all" } ],
-        "OutputWidthHigh": [ { "value": "63", "value_src": "user", "resolve_type": "user", "format": "long", "enabled": false, "usage": "all" } ],
+        "OutputWidthHigh": [ { "value": "63", "resolve_type": "user", "format": "long", "enabled": false, "usage": "all" } ],
         "OutputWidthLow": [ { "value": "0", "resolve_type": "user", "format": "long", "enabled": false, "usage": "all" } ],
         "UseRounding": [ { "value": "false", "resolve_type": "user", "format": "bool", "enabled": false, "usage": "all" } ],
         "RoundPoint": [ { "value": "0", "resolve_type": "user", "format": "long", "enabled": false, "usage": "all" } ],
@@ -60,7 +60,7 @@
         "PREFHDL": [ { "value": "VERILOG" } ],
         "SILICON_REVISION": [ { "value": "" } ],
         "SIMULATOR_LANGUAGE": [ { "value": "MIXED" } ],
-        "SPEEDGRADE": [ { "value": "-2" } ],
+        "SPEEDGRADE": [ { "value": "-1" } ],
         "STATIC_POWER": [ { "value": "" } ],
         "TEMPERATURE_GRADE": [ { "value": "" } ]
       },
@@ -68,11 +68,11 @@
         "IPCONTEXT": [ { "value": "IP_Flow" } ],
         "IPREVISION": [ { "value": "19" } ],
         "MANAGED": [ { "value": "TRUE" } ],
-        "OUTPUTDIR": [ { "value": "../../../../loongson.gen/sources_1/ip/mult_gen_1_1" } ],
+        "OUTPUTDIR": [ { "value": "../../../../loongson.gen/sources_1/ip/mult_gen_1" } ],
         "SELECTEDSIMMODEL": [ { "value": "" } ],
         "SHAREDDIR": [ { "value": "." } ],
         "SWVERSION": [ { "value": "2023.2" } ],
-        "SYNTHESISFLOW": [ { "value": "GLOBAL" } ]
+        "SYNTHESISFLOW": [ { "value": "OUT_OF_CONTEXT" } ]
       }
     },
     "boundary": {
